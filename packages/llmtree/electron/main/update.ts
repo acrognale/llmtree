@@ -37,6 +37,7 @@ export function update(win: Electron.BrowserWindow) {
       update: true,
       version: '1.0.0',
       newVersion: '1.0.1',
+      releaseNotes: 'This is a mock update',
     })
   })
 

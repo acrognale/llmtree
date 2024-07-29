@@ -3,7 +3,12 @@ productName: LLMTree
 directories:
   buildResources: config
 files:
-  - 'dist/**'
+  - 'dist/assets/**'
+  - 'dist/icon.iconset'
+  - 'dist/logo.png'
+  - 'dist/vite.svg'
+  - 'dist/builder-effective-config.yaml'
+  - 'dist/index.html'
   - 'dist-electron/**'
   - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
   - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
@@ -24,13 +29,9 @@ mac:
   entitlements: config/entitlements.mac.plist
   entitlementsInherit: config/entitlements.mac.plist
   icon: ./icon.icns
-  target:
-  - target: dmg
-    arch:
-      - x64
-      - arm64
   notarize: false
 dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
   icon: ./icon.icns
   iconSize: 128
   contents:

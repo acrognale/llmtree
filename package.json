@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "pnpm --filter @llmtree/app dev",
     "build": "pnpm --filter @llmtree/app build",
-    "package": "pnpm --filter @llmtree/app package"
+    "package": "pnpm --filter @llmtree/app package",
+    "release": "pnpm --filter @llmtree/app release"
   },
   "engines": {
     "node": ">=18",

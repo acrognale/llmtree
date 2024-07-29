@@ -1,0 +1,256 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.react-flow__renderer {
+  position: fixed !important;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
+
+
+  /* purgecss start ignore */
+/* Markdown Styles */
+/* Global */
+/* purgecss start ignore */
+/* Markdown Styles */
+/* Global */
+.markdown {
+  @apply leading-relaxed text-sm;
+}
+
+/* .katex-center p .katex:only-child {
+  display: flex;
+  justify-content: center;
+  margin: 1em 0;
+} */
+
+/* .react-flow__resize-control.line {
+  border: none; */
+/* } */
+
+
+.react-flow__resize-control.line {
+  top: -16px !important;
+  border: none;
+}
+
+.react-flow__renderer {
+  position: fixed !important;
+}
+
+.react-flow__resize-control.handle {
+  /* move up a few pixels */
+  top: calc(100% - 16px) !important;
+  width: 4rem;
+  height: 1rem;
+  background: transparent;
+}
+
+@keyframes pulse {
+  0% {
+      stroke-width: 4;
+      stroke-opacity: 1;
+  }
+  50% {
+      stroke-width: 8;
+      stroke-opacity: 0.5;
+  }
+  100% {
+      stroke-width: 4;
+      stroke-opacity: 1;
+  }
+}
+
+/* .react-flow__edge.animated path {
+  animation: pulse 2s infinite;
+} */
+
+@screen sm {
+  .markdown {
+    @apply text-base;
+  }
+}
+
+@screen lg {
+  .markdown {
+    @apply text-lg;
+  }
+}
+
+.react-flow__handle {
+  opacity: 0;
+}
+
+/* Headers */
+.markdown h1,
+.markdown h2 {
+  @apply text-xl my-6 font-semibold;
+}
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  @apply text-lg my-3 font-semibold;
+}
+
+@screen sm {
+  .markdown h1,
+  .markdown h2 {
+    @apply text-2xl;
+  }
+  .markdown h3,
+  .markdown h4,
+  .markdown h5,
+  .markdown h6 {
+    @apply text-xl;
+  }
+}
+
+/* Links */
+.markdown a {
+  @apply text-blue-600;
+}
+.markdown a:hover {
+  @apply underline;
+}
+/* Paragraph */
+.markdown p {
+  @apply mb-2;
+}
+/* Lists */
+.markdown ul,
+.markdown ol {
+  @apply mb-2 ml-8;
+}
+.markdown li > p,
+.markdown li > ul,
+.markdown li > ol {
+  @apply mb-0;
+  display: inline; /* Add this line to keep list markers inline with paragraphs */
+}
+.markdown ol {
+  @apply list-decimal;
+}
+.markdown ul {
+  @apply list-disc;
+}
+
+/* Blockquotes */
+.markdown blockquote {
+  @apply p-2 mx-6 bg-gray-100 mb-4 border-l-4 border-gray-400 italic;
+}
+.markdown blockquote > p {
+  @apply mb-0;
+}
+/* Tables */
+.markdown td,
+.markdown th {
+  @apply px-2 py-1 border border-gray-400;
+}
+.markdown tr:nth-child(odd) {
+  @apply bg-gray-100;
+}
+.markdown table {
+  @apply mb-6;
+}
+
+/* Wrap any inline highlights `that are really long`, but don't modify
+   the setting for codeblocks (inside ```), which are rendered in as:
+   <pre><code>...
+*/
+.markdown :not(pre) > code.language-text {
+  white-space: pre-line;
+}
+.react-flow__devtools {
+  --border-radius: 4px;
+  --highlight-color: rgba(238, 58, 115, 1);
+  --font: monospace, sans-serif;
+
+  border-radius: var(--border-radius);
+  font-size: 11px;
+  font-family: var(--font);
+}
+
+.react-flow__devtools button {
+  background: white;
+  border: none;
+  padding: 5px 15px;
+  color: #222;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  background-color: #f4f4f4;
+  border-right: 1px solid #ddd;
+}
+
+.react-flow__devtools button:hover {
+  background: var(--highlight-color);
+  opacity: 0.8;
+  color: white;
+}
+
+.react-flow__devtools button.active {
+  background: var(--highlight-color);
+  color: white;
+}
+
+.react-flow__devtools button:first-child {
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.react-flow__devtools button:last-child {
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-right: none;
+}
+
+.react-flow__devtools-changelogger {
+  pointer-events: none;
+  position: relative;
+  top: 50px;
+  left: 20px;
+  font-family: var(--font);
+}
+
+.react-flow__devtools-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.react-flow__devtools-nodeinspector {
+  pointer-events: none;
+  font-family: monospace, sans-serif;
+  font-size: 10px;
+}
+
+.react-flow__devtools-nodeinfo {
+  top: 5px;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+  border: transparent;
+}
+
+}

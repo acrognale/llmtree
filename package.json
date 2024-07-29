@@ -1,0 +1,12 @@
+{
+  "name": "llmtree-monorepo",
+  "scripts": {
+    "dev": "pnpm --filter @llmtree/app dev",
+    "build": "pnpm --filter @llmtree/app build",
+    "package": "pnpm --filter @llmtree/app package"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=8"
+  }
+}

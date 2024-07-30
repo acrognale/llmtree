@@ -1,6 +1,10 @@
 # LLMTree
 
-LLMTree is an intelligent AI assistant that allows users to explore different chains of thought using various language models. It provides a unique interface for branching conversations and visualizing thought processes.
+<p>
+  <img src="https://github.com/acrognale/llmtree/blob/main/packages/llmtree/public/logo.png" alt="LLMTree logo" width="100" height="100">
+</p>
+
+LLMTree is a large language model client that places chats on an infinite canvas, allowing users to fork and branch conversations.
 
 ![Sped up LLMTree](https://github.com/acrognale/llmtree/blob/main/media/spedup.webp)
 
@@ -8,9 +12,11 @@ LLMTree is an intelligent AI assistant that allows users to explore different ch
   <img src="https://img.shields.io/badge/Join-Discord-blue.svg"/>
 </a>
 
-## Description
+## Download
 
-LLMTree is designed to enhance the interaction between users and language models. It allows users to create multiple canvases, each representing a different conversation or thought process. The application supports branching conversations, enabling users to explore various ideas stemming from a single response.
+[Download the latest version here](https://github.com/acrognale/llmtree/releases/latest)
+
+More builds besides MacOS coming soon.
 
 ## Features
 
@@ -26,6 +32,17 @@ LLMTree is designed to enhance the interaction between users and language models
 ### Reply to a message in a canvas
 
 ![Replying to a message](https://github.com/acrognale/llmtree/blob/main/media/reply.webp)
+
+## Supported LLM providers
+
+- [OpenAI](https://platform.openai.com/)
+- [Anthropic](https://www.anthropic.com/)
+- [Groq](https://www.groq.com/)
+- [Gemini](https://gemini.google.com/)
+
+## Planned Features
+
+- [ ] Support for more LLM providers (add everything else already supported by litellmjs)
 
 ## Keyboard Shortcuts
 

@@ -12,6 +12,7 @@ export type SettingsActions = {
   setSelectedModel: (model: string) => void
   addProvider: (provider: LLMProvider) => void
   removeProvider: (provider: LLMProvider) => void
+  updateSystemPrompt: (systemPrompt: string) => void
 }
 
 export const settingsActions: ActionCreator<SettingsActions> = (set) => ({
@@ -51,6 +52,12 @@ export const settingsActions: ActionCreator<SettingsActions> = (set) => ({
     set(
       produce((state: State) => {
         state.settings.selectedModel = model
+      }),
+    ),
+  updateSystemPrompt: (systemPrompt: string) =>
+    set(
+      produce((state: State) => {
+        state.settings.systemPrompt = systemPrompt
       }),
     ),
 })

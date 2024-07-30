@@ -1,14 +1,41 @@
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 
 import { LLMSettings } from '@/components/Settings/LLMSettings'
 import { cls } from '@/helpers/ui'
+import { useStore } from '@/state/store'
 
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
   isOnboarding?: boolean
+}
+
+function SystemPromptSettings() {
+  const systemPrompt = useStore((state) => state.settings.systemPrompt)
+  const updateSystemPrompt = useStore(
+    (state) => state.actions.updateSystemPrompt,
+  )
+  const [localSystemPrompt, setLocalSystemPrompt] = useState(systemPrompt)
+
+  useEffect(() => {
+    return () => {
+      updateSystemPrompt(localSystemPrompt)
+    }
+  }, [localSystemPrompt, updateSystemPrompt])
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-2">System Prompt</h3>
+      <textarea
+        className="w-full h-48 p-2 border rounded-md"
+        value={localSystemPrompt}
+        onChange={(e) => setLocalSystemPrompt(e.target.value)}
+      />
+    </div>
+  )
 }
 
 export function SettingsModal({
@@ -18,21 +45,10 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [selectedTab, setSelectedTab] = useState(0)
 
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleEscKey)
-
-    return () => {
-      document.removeEventListener('keydown', handleEscKey)
-    }
-  }, [onClose])
+  useHotkeys('escape', onClose)
 
   const handleSave = () => {
+    // This will trigger the useEffect in SystemPromptSettings
     onClose()
   }
 
@@ -105,4 +121,7 @@ export function SettingsModal({
   )
 }
 
-const tabs = [{ name: 'LLM Providers', content: <LLMSettings /> }]
+const tabs = [
+  { name: 'LLM Providers', content: <LLMSettings /> },
+  { name: 'System Prompt', content: <SystemPromptSettings /> },
+]

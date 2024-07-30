@@ -2,6 +2,12 @@
 
 LLMTree is an intelligent AI assistant that allows users to explore different chains of thought using various language models. It provides a unique interface for branching conversations and visualizing thought processes.
 
+![Sped up LLMTree](https://github.com/acrognale/llmtree/blob/main/media/spedup.webp)
+
+<a href="https://discord.gg/Qu5SKnVZhe">
+  <img src="https://img.shields.io/badge/Join-Discord-blue.svg"/>
+</a>
+
 ## Description
 
 LLMTree is designed to enhance the interaction between users and language models. It allows users to create multiple canvases, each representing a different conversation or thought process. The application supports branching conversations, enabling users to explore various ideas stemming from a single response.
@@ -9,20 +15,29 @@ LLMTree is designed to enhance the interaction between users and language models
 ## Features
 
 - Multiple canvas support for organizing thoughts and conversations
-- Branching conversations to explore different ideas
 - Markdown and LaTeX rendering for rich text responses
 - Onboarding process for new users
 - Electron-based desktop application for cross-platform support
 
+### Fork and branch entire conversations to explore different ideas
+
+![Forking a conversation](https://github.com/acrognale/llmtree/blob/main/media/fork.webp)
+
+### Reply to a message in a canvas
+
+![Replying to a message](https://github.com/acrognale/llmtree/blob/main/media/reply.webp)
+
 ## Keyboard Shortcuts
 
-| Key | Action                    |
-| --- | ------------------------- |
-| `f` | Zoom to a 50% zoom level  |
-| `g` | Zoom to a 100% zoom level |
-| `z` | Zoom to fit               |
+| Key            | Action                    |
+| -------------- | ------------------------- |
+| `f`            | Zoom to a 50% zoom level  |
+| `g`            | Zoom to a 100% zoom level |
+| `z`            | Zoom to fit               |
+| `meta+shift+m` | Open the model switcher   |
+| `cmd+,`        | Open the settings modal   |
 
-## Installation
+## Setting up for development
 
 1. Clone the repository:
 
@@ -33,7 +48,7 @@ git clone https://github.com/acrognale/llmtree.git
 2. Navigate to the project directory:
 
 ```
-cd LLMTree
+cd llmtree
 ```
 
 3. Install dependencies:

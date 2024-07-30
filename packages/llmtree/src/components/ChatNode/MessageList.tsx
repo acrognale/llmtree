@@ -1,8 +1,8 @@
 import { Reply } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
 import Markdown from 'react-markdown'
-import SyntaxHighlighter from 'react-syntax-highlighter'
-import dark from 'react-syntax-highlighter/dist/esm/styles/prism/dark'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import dark from 'react-syntax-highlighter/dist/esm/styles/prism/atom-dark'
 import rehypeKatex from 'rehype-katex'
 import remarkDirective from 'remark-directive'
 import remarkGfm from 'remark-gfm'
@@ -131,6 +131,8 @@ const MemoizedMarkdown = React.memo(
               PreTag="div"
               customStyle={{
                 fontSize: '12px',
+                marginTop: '1rem',
+                marginBottom: '1rem',
               }}
               children={String(children).replace(/\n$/, '')}
               language={match[1]}

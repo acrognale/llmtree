@@ -33,26 +33,57 @@ async function initializeCompletion(
     throw new Error('No selected model')
   }
 
-  const providerInfo = Object.entries(LLM_PROVIDER_INFO).find(([_, info]) =>
-    info.modelList.includes(settings.selectedModel!),
-  )
+  // Find the provider for the selected model
+  let provider: LLMProvider | undefined
+  let providerConfig: Settings['providers'][LLMProvider] | undefined
 
-  if (!providerInfo) {
-    throw new Error('Selected model not found')
+  // Helper function to find provider
+  const findProvider = (
+    model: string,
+  ): {
+    provider: LLMProvider
+    providerConfig: Settings['providers'][LLMProvider]
+  } | null => {
+    // Check pre-set models first
+    for (const [key, info] of Object.entries(LLM_PROVIDER_INFO)) {
+      if (info.modelList.includes(model)) {
+        return {
+          provider: key as LLMProvider,
+          providerConfig: settings.providers[key as LLMProvider],
+        }
+      }
+    }
+
+    // If not found in pre-set models, check custom providers
+    const customProvider = Object.entries(settings.providers).find(
+      ([_, config]) => config.models?.includes(model),
+    )
+
+    if (customProvider) {
+      return {
+        provider: customProvider[0] as LLMProvider,
+        providerConfig: customProvider[1],
+      }
+    }
+
+    return null
   }
 
-  const [provider, _] = providerInfo
-  const providerConfig = settings.providers[provider as LLMProvider]
-
-  if (!providerConfig) {
-    throw new Error('Provider configuration not found')
+  // Use the helper function to find the provider
+  const result = findProvider(settings.selectedModel)
+  if (result !== null) {
+    provider = result.provider
+    providerConfig = result.providerConfig
+  } else {
+    throw new Error('Selected model not found in any provider')
   }
 
   const completionSettings = {
     ...settings,
-    provider: provider as LLMProvider,
+    provider,
     apiKey: providerConfig.apiKey,
-    baseUrl: providerConfig.baseUrl,
+    baseUrl:
+      providerConfig.baseUrl || LLM_PROVIDER_INFO[provider]?.defaultBaseUrl,
     model: settings.selectedModel,
   }
 
@@ -60,6 +91,8 @@ async function initializeCompletion(
     settings: completionSettings,
     history,
     prompt,
+    provider,
+    providerConfig,
   })
   return new Promise((resolve) =>
     window.ipcRenderer.once('completion-id', (_, id) => {

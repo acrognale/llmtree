@@ -2,8 +2,7 @@ import { completion } from '@llmtree/litellm'
 import { AvailableProviders } from '@llmtree/litellm/src/types'
 import { ipcMain } from 'electron'
 
-import { LLM_PROVIDER_INFO } from '@/data/llmLists'
-import { State } from '@/state/state'
+import { LLMProvider, Settings, State } from '@/state/state'
 
 export interface StartCompletionParams {
   settings: Pick<State, 'settings'>['settings']
@@ -12,6 +11,8 @@ export interface StartCompletionParams {
     content: string
   }[]
   prompt: string
+  provider: string
+  providerConfig: Settings['providers'][LLMProvider]
 }
 
 export function setupCompletions() {
@@ -19,7 +20,13 @@ export function setupCompletions() {
     'start-completion',
     async (
       event,
-      { settings, history, prompt }: StartCompletionParams,
+      {
+        settings,
+        history,
+        prompt,
+        provider,
+        providerConfig,
+      }: StartCompletionParams,
     ): Promise<void> => {
       const id = Date.now()
 
@@ -33,26 +40,22 @@ export function setupCompletions() {
       event.sender.send('completion-id', id)
 
       try {
-        const selectedProviderKey = Object.keys(LLM_PROVIDER_INFO).find(
-          (provider) =>
-            LLM_PROVIDER_INFO[provider].modelList.find(
-              (model) => model === settings.selectedModel,
-            ),
-        )
-
-        const selectedProvider =
-          settings.providers[
-            selectedProviderKey as keyof typeof settings.providers
-          ]
-
         const baseUrl =
-          selectedProvider.baseUrl && selectedProvider.baseUrl !== ''
-            ? selectedProvider.baseUrl
+          providerConfig.baseUrl && providerConfig.baseUrl !== ''
+            ? providerConfig.baseUrl
             : undefined
 
+        console.log([
+          ...history.filter((message) => message.content !== ''),
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ])
+
         const iterable = await completion({
-          provider: selectedProviderKey as AvailableProviders,
-          apiKey: selectedProvider.apiKey,
+          provider: provider as AvailableProviders,
+          apiKey: providerConfig.apiKey,
           baseUrl,
           model: settings.selectedModel as string,
           system: settings.systemPrompt,
@@ -63,6 +66,25 @@ export function setupCompletions() {
               content: prompt,
             },
           ],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'addBranch',
+                description:
+                  'If you think it would be helpful to add a branch to the graph to explain a concept, you can do so by calling this function.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    content: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['content'],
+                },
+              },
+            },
+          ],
           stream: true,
         })
 
@@ -71,10 +93,12 @@ export function setupCompletions() {
 
         // Start the completion process
         for await (const chunk of iterable) {
+          console.log('Chunk:', chunk)
           event.sender.send(`completion-chunk-${id}`, chunk)
         }
         event.sender.send(`completion-done-${id}`)
       } catch (error) {
+        console.error('Completion error:', error)
         event.sender.send(`completion-error-${id}`, error)
       }
     },

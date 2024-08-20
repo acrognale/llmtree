@@ -21,6 +21,12 @@ export const settingsActions: ActionCreator<SettingsActions> = (set) => ({
       produce((state: State) => {
         state.settings.providers[provider] = {
           apiKey: '',
+          baseUrl: provider.startsWith('customOpenAI')
+            ? 'https://api.openai.com/v1'
+            : undefined,
+          models: provider.startsWith('customOpenAI')
+            ? ['gpt-3.5-turbo', 'gpt-4']
+            : undefined,
         }
       }),
     ),

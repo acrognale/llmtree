@@ -1,4 +1,5 @@
 import AnthropicIcon from '@/assets/anthropic.webp'
+import GenericOpenAIIcon from '@/assets/generic-openai.svg'
 import GoogleIcon from '@/assets/google.png'
 import GroqIcon from '@/assets/groq.png'
 import OpenAIIcon from '@/assets/openai.svg'
@@ -8,6 +9,7 @@ interface LlmProviderInfo {
   icon: React.ReactNode
   defaultBaseUrl?: string
   modelList: string[]
+  isCustom?: boolean
 }
 
 export const LLM_PROVIDER_INFO: Record<string, LlmProviderInfo> = {
@@ -37,6 +39,7 @@ export const LLM_PROVIDER_INFO: Record<string, LlmProviderInfo> = {
       'llama3-70b-8192',
       'llama3-8b-8192',
       'mixtral-8x7b-32768',
+      'llama3-groq-70b-8192-tool-use-preview',
     ],
     defaultBaseUrl: 'https://api.groq.com/openai/v1',
   },
@@ -48,5 +51,14 @@ export const LLM_PROVIDER_INFO: Record<string, LlmProviderInfo> = {
       'gemini-1.5-flash-latest',
       'gemini-1.0-pro-latest',
     ],
+  },
+  customOpenAI: {
+    name: 'Custom',
+    icon: (
+      <img src={GenericOpenAIIcon} alt="Custom OpenAI" className="w-4 h-4" />
+    ),
+    modelList: ['gpt-3.5-turbo', 'gpt-4'],
+    defaultBaseUrl: 'https://api.openai.com/v1',
+    isCustom: true,
   },
 }

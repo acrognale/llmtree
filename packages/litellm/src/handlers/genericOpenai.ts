@@ -1,6 +1,43 @@
 import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources';
+import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 
-import { HandlerParams, ResultStreaming, ResultNotStreaming } from '../types';
+import {
+  HandlerParams,
+  ResultStreaming,
+  ResultNotStreaming,
+  ConsistentResponseChoice,
+  ConsistentResponseStreamingChoice,
+  Message,
+} from '../types';
+
+function toConsistentResponseChoice(
+  choice: OpenAI.Chat.ChatCompletion.Choice,
+): ConsistentResponseChoice {
+  return {
+    finish_reason: choice.finish_reason,
+    index: choice.index,
+    message: {
+      role: choice.message.role,
+      content: choice.message.content,
+      tool_calls: choice.message.tool_calls,
+    },
+  };
+}
+
+function toConsistentResponseStreamingChoice(
+  choice: OpenAI.Chat.ChatCompletionChunk.Choice,
+): ConsistentResponseStreamingChoice {
+  return {
+    finish_reason: choice.finish_reason,
+    index: choice.index,
+    delta: {
+      content: choice.delta.content as string,
+      role: choice.delta.role as 'assistant' | 'system' | 'user' | 'tool',
+      tool_calls: choice.delta.tool_calls,
+    },
+  };
+}
 
 async function* toStreamingResponse(
   response: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>,
@@ -9,15 +46,7 @@ async function* toStreamingResponse(
     yield {
       model: chunk.model,
       created: chunk.created,
-      choices: chunk.choices.map((choice) => ({
-        delta: {
-          content: choice.delta.content,
-          role: choice.delta.role,
-          function_call: choice.delta.function_call,
-        },
-        index: choice.index,
-        finish_reason: choice.finish_reason,
-      })),
+      choices: chunk.choices.map(toConsistentResponseStreamingChoice),
     };
   }
 }
@@ -25,6 +54,40 @@ async function* toStreamingResponse(
 interface HandlerConfig {
   defaultApiKeyEnvVar: string;
   defaultBaseUrl: string;
+}
+
+function toChatCompletionMessageParam(
+  message: Message,
+): ChatCompletionMessageParam {
+  switch (message.role) {
+    case 'system':
+    case 'assistant':
+    case 'user':
+      return {
+        role: message.role,
+        content: message.content as string,
+      };
+    case 'tool':
+      return {
+        content: message.content as string,
+        role: 'tool',
+        tool_call_id: message.tool_call_id as string,
+      };
+  }
+
+  throw new Error('Unsupported message role');
+}
+
+function toChatCompletionCreateParamsBase(
+  params: Omit<HandlerParams, 'provider' | 'system'>,
+): ChatCompletionCreateParamsBase {
+  const result = {
+    ...params,
+    tools: params.tools,
+    messages: params.messages.map(toChatCompletionMessageParam),
+  };
+
+  return result;
 }
 
 export function createOpenAICompatibleHandler(config: HandlerConfig) {
@@ -59,17 +122,35 @@ export function createOpenAICompatibleHandler(config: HandlerConfig) {
       ];
     }
 
+    // Add tools and tool_choice to the request if provided
+    if (params.tools) {
+      completionsParamsWithoutProvider.tools = params.tools;
+    }
+    if (params.tool_choice) {
+      completionsParamsWithoutProvider.tool_choice = params.tool_choice;
+    }
+
     if (params.stream) {
       const response = await client.chat.completions.create({
-        ...completionsParamsWithoutProvider,
-        stream: params.stream,
+        ...toChatCompletionCreateParamsBase(completionsParamsWithoutProvider),
+        stream: true,
       });
       return toStreamingResponse(response);
     }
 
-    return client.chat.completions.create({
-      ...completionsParams,
+    const response = await client.chat.completions.create({
+      ...toChatCompletionCreateParamsBase(completionsParamsWithoutProvider),
       stream: false,
     });
+
+    return {
+      choices: response.choices.map(toConsistentResponseChoice),
+      usage: response.usage,
+    };
   };
 }
+
+export const GenericOpenAIHandler = createOpenAICompatibleHandler({
+  defaultApiKeyEnvVar: 'GENERIC_OPENAI_API_KEY',
+  defaultBaseUrl: 'https://api.openai.com/v1',
+});

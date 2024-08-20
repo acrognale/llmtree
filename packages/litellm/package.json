@@ -37,7 +37,7 @@
     "cohere-ai": "^6.2.2",
     "eventsource": "^2.0.2",
     "js-tiktoken": "^1.0.7",
-    "openai": "4.11.1",
+    "openai": "4.56.0",
     "replicate": "^0.20.1"
   },
   "engines": {

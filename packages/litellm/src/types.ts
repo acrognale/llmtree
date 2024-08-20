@@ -1,40 +1,64 @@
-import { ChatCompletionCreateParams } from 'openai/resources/chat/completions';
-
 import { EmbeddingParams, EmbeddingResponse } from './embedding';
 
-export type Role = 'system' | 'user' | 'assistant' | 'function';
+export type Role = 'system' | 'user' | 'assistant' | 'function' | 'tool';
 
 export interface Message {
   role: Role;
   content: string | null;
+  tool_call_id?: string;
 }
 
 export type FinishReason =
   | 'stop'
   | 'length'
+  | 'tool_calls'
+  | 'content_filter'
   | 'function_call'
-  | 'content_filter';
+  | null;
+
+interface FunctionDefinition {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+  strict?: boolean;
+}
+
+export interface Tool {
+  type: 'function';
+  function: FunctionDefinition;
+}
+
+export interface ToolCall {
+  arguments?: string;
+  name?: string;
+}
+
+export interface StreamingToolCall {
+  index?: number;
+  id?: string;
+  function?: ToolCall;
+  type?: 'function';
+}
 
 export interface ConsistentResponseChoice {
   finish_reason: FinishReason | null;
   index: number;
   message: {
-    role: string | null | undefined;
-    content: string | null | undefined;
+    role: 'system' | 'user' | 'assistant' | 'tool' | 'function';
+    content: string | null;
+    name?: string;
+    tool_calls?: Array<StreamingToolCall>;
     function_call?: {
-      arguments: string;
       name: string;
-    };
+      arguments: string;
+    } | null;
   };
 }
 
 export interface ConsistentResponseStreamingChoice
   extends Omit<ConsistentResponseChoice, 'message'> {
-  delta: Omit<ConsistentResponseChoice['message'], 'function_call'> & {
-    function_call?: {
-      arguments?: string;
-      name?: string;
-    };
+  delta: Omit<ConsistentResponseChoice['message'], 'tool_calls'> & {
+    tool_calls?: Array<StreamingToolCall>;
   };
 }
 
@@ -71,7 +95,9 @@ export type AvailableProviders =
   | 'deepinfra'
   | 'mistral'
   | 'google'
-  | 'groq';
+  | 'groq'
+  | 'customOpenAI'
+  | `customOpenAI_${string}`;
 
 export type AvailableEmbeddingsProviders = 'openai' | 'ollama' | 'mistral';
 
@@ -88,11 +114,11 @@ export interface HandlerParamsBase {
   n?: number | null;
   max_tokens?: number | null;
   apiKey?: string;
-  functions?: ChatCompletionCreateParams.Function[];
-  function_call?:
+  tools?: Tool[];
+  tool_choice?:
     | 'none'
     | 'auto'
-    | ChatCompletionCreateParams.FunctionCallOption;
+    | { type: 'function'; function: { name: string } };
   system?: string;
 }
 

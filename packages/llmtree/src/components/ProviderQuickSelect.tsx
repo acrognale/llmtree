@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ChevronDown, Search } from 'lucide-react'
 import { useState, useEffect, useRef, KeyboardEvent } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { LLM_PROVIDER_INFO } from '@/data/llmLists'
+import { LLMProvider } from '@/state/state'
 import { useStore } from '@/state/store'
 
 export function ProviderQuickSelect() {
@@ -72,8 +72,7 @@ export function ProviderQuickSelect() {
       for (const model of providerInfo.modelList) {
         if (currentIndex === focusedIndex) {
           const isConfigured =
-            settings.providers[providerKey as keyof typeof settings.providers]
-              ?.apiKey !== ''
+            settings.providers[providerKey as LLMProvider]?.apiKey !== ''
           if (isConfigured) {
             onModelChange(model)
             setIsModelDropdownOpen(false)
@@ -86,30 +85,45 @@ export function ProviderQuickSelect() {
     }
   }
 
-  const selectedModelInfo = Object.entries(LLM_PROVIDER_INFO).find(
-    ([_, info]) => info.modelList.includes(settings.selectedModel!),
-  )
+  const selectedModelInfo =
+    Object.entries(settings.providers).find(
+      ([_, config]) => config.models?.includes(settings.selectedModel!),
+    ) ||
+    Object.entries(LLM_PROVIDER_INFO).find(([_, info]) =>
+      info.modelList.includes(settings.selectedModel!),
+    )
 
   const [provider, providerInfo] = selectedModelInfo || ['', {}]
 
-  const filteredModels = Object.entries(LLM_PROVIDER_INFO).reduce(
-    (acc, [providerKey, providerInfo]) => {
-      const filteredModelList = providerInfo.modelList.filter((model) =>
+  const filteredModels = Object.entries(settings.providers).reduce(
+    (acc, [providerKey, providerConfig]) => {
+      const baseProviderInfo =
+        LLM_PROVIDER_INFO[providerKey as keyof typeof LLM_PROVIDER_INFO] ||
+        LLM_PROVIDER_INFO.customOpenAI
+      const modelList = providerConfig.models || baseProviderInfo.modelList
+      const filteredModelList = modelList.filter((model) =>
         model.toLowerCase().includes(searchTerm.toLowerCase()),
       )
       if (filteredModelList.length > 0) {
-        acc[providerKey] = { ...providerInfo, modelList: filteredModelList }
+        acc[providerKey] = {
+          ...baseProviderInfo,
+          name: providerConfig.name || baseProviderInfo.name,
+          modelList: filteredModelList,
+        }
       }
       return acc
     },
-    {} as typeof LLM_PROVIDER_INFO,
+    {} as Record<
+      string,
+      (typeof LLM_PROVIDER_INFO)[keyof typeof LLM_PROVIDER_INFO]
+    >,
   )
 
   return (
     <div className="px-4 mb-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          {providerInfo.icon}
+          {(providerInfo as any).icon}
           <span className="font-semibold ml-2 text-sm">
             {settings.selectedModel || 'Select a model'}
           </span>
@@ -146,9 +160,7 @@ export function ProviderQuickSelect() {
                 .reduce((acc, [_, info]) => acc + info.modelList.length, 0)
 
               const providerConfig =
-                settings.providers[
-                  providerKey as keyof typeof settings.providers
-                ]
+                settings.providers[providerKey as LLMProvider]
               const isConfigured =
                 providerConfig && providerConfig.apiKey !== ''
 

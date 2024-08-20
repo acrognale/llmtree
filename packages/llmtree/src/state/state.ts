@@ -1,4 +1,3 @@
-import { AvailableProviders } from '@llmtree/litellm/src/types'
 import { Node, Edge } from 'reactflow'
 
 import { AppActions } from '@/state/actions/app'
@@ -7,7 +6,13 @@ import { MessageActions } from '@/state/actions/messages'
 import { OnboardingActions } from '@/state/actions/onboarding'
 import { SettingsActions } from '@/state/actions/settings'
 
-export type LLMProvider = AvailableProviders
+export type LLMProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'groq'
+  | 'google'
+  | 'customOpenAI'
+  | `customOpenAI_${string}` // Allow for multiple custom OpenAI providers
 
 export interface Canvas {
   id: string
@@ -47,6 +52,8 @@ export interface Settings {
     [key in LLMProvider]: {
       apiKey: string
       baseUrl?: string
+      name?: string // Add a name field for custom providers
+      models?: string[] // Add a models field for custom providers
     }
   }
   selectedModel: string | null

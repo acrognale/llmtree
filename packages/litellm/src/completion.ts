@@ -1,4 +1,4 @@
-import { PROVIDER_HANDLER_MAPPINGS } from './handlers';
+import { getHandler } from './handlers';
 import {
   HandlerParams,
   HandlerParamsNotStreaming,
@@ -19,11 +19,11 @@ export async function completion(
 export async function completion(params: HandlerParams): Promise<Result>;
 
 export async function completion(params: HandlerParams): Promise<Result> {
-  const handler = PROVIDER_HANDLER_MAPPINGS[params.provider];
+  const handler = getHandler(params.provider);
 
   if (!handler) {
     throw new Error(
-      `Model: ${params.model} not supported. Cannot find a handler.`,
+      `Provider: ${params.provider} not supported. Cannot find a handler.`,
     );
   }
 

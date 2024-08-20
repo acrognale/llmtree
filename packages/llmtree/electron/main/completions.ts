@@ -12,14 +12,6 @@ interface StartCompletionParams {
   providerConfig: Settings['providers'][LLMProvider]
 }
 
-interface CompletionResult {
-  id: number
-  usage: {
-    totalInputTokens: number
-    totalOutputTokens: number
-  }
-}
-
 class CompletionManager {
   private static instance: CompletionManager
   private activeCompletions: Map<number, AbortController> = new Map()
@@ -34,14 +26,28 @@ class CompletionManager {
   }
 
   async startCompletion(
+    id: number,
     event: Electron.IpcMainInvokeEvent,
     params: StartCompletionParams,
-  ): Promise<CompletionResult> {
+  ): Promise<number> {
     console.log('Starting completion', params)
-    const id = Date.now()
     const abortController = new AbortController()
     this.activeCompletions.set(id, abortController)
 
+    // Immediately return the id
+    setImmediate(() =>
+      this.executeCompletion(event, params, id, abortController),
+    )
+
+    return id
+  }
+
+  private async executeCompletion(
+    event: Electron.IpcMainInvokeEvent,
+    params: StartCompletionParams,
+    id: number,
+    abortController: AbortController,
+  ): Promise<void> {
     try {
       const { settings, history, prompt, provider, providerConfig } = params
       const baseUrl =
@@ -84,7 +90,6 @@ class CompletionManager {
       let totalOutputTokens = 0
 
       for await (const chunk of iterable) {
-        console.log('Chunk', chunk)
         if (abortController.signal.aborted) {
           console.log(`Completion ${id} was cancelled`)
           break
@@ -101,10 +106,16 @@ class CompletionManager {
         0,
       )
 
-      return { id, usage: { totalInputTokens, totalOutputTokens } }
+      event.sender.send(`completion-done`, {
+        id,
+        usage: { totalInputTokens, totalOutputTokens },
+      })
     } catch (error) {
       console.error(`Error in completion ${id}:`, error)
-      throw error
+      event.sender.send(`completion-error`, {
+        id,
+        message: (error as Error).message,
+      })
     } finally {
       this.activeCompletions.delete(id)
     }
@@ -127,20 +138,13 @@ export function setupCompletions() {
     async (event, params: StartCompletionParams) => {
       const id = Date.now() // Generate id here
       try {
-        const result = await completionManager.startCompletion(event, {
-          ...params,
-          id,
-        })
-        event.sender.send(`completion-done`, {
-          id: result.id,
-          usage: result.usage,
-        })
-        return result.id // Return the id to the renderer
+        await completionManager.startCompletion(id, event, params)
+        return id // Return the id to the renderer
       } catch (error) {
         console.error('Completion error:', error)
         event.sender.send(`completion-error`, {
           id,
-          message: error.message,
+          message: (error as Error).message,
         })
         throw error // Re-throw the error so the renderer can handle it
       }

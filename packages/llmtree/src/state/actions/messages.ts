@@ -1,7 +1,7 @@
 import { produce } from 'immer'
 import { nanoid } from 'nanoid'
 
-import { getCompletion } from '@/completions'
+import { getCompletionManager } from '@/completions'
 import { selectCurrentCanvas } from '@/state/selectors'
 import type { ActionCreator, Message, State } from '@/state/state'
 
@@ -76,12 +76,15 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
     }
 
     try {
+      console.log('[streamResponse] Starting response stream')
       const history = context.slice(0, -1).flatMap(({ prompt, response }) => [
         { role: 'user' as const, content: prompt },
         { role: 'assistant' as const, content: response },
       ])
 
-      const stream = getCompletion({
+      const completionManager = getCompletionManager()
+      console.log('[streamResponse] Calling completionManager.getCompletion')
+      const stream = completionManager.getCompletion({
         settings: get().settings,
         prompt: selectedText
           ? `Focusing on ${selectedText}, ${prompt}`
@@ -89,7 +92,9 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
         history,
       })
 
+      console.log('[streamResponse] Starting for...await loop')
       for await (const chunk of stream) {
+        console.log('[Frontend] received chunk')
         accumulatedText += chunk
         requestAnimationFrame(() => {
           updateMessage({
@@ -98,6 +103,7 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
           })
         })
       }
+      console.log('[streamResponse] for...await loop completed')
 
       updateMessage({
         response: accumulatedText,
@@ -105,6 +111,7 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
       })
       return accumulatedText
     } catch (error) {
+      console.error('[streamResponse] Error:', error)
       updateMessage({
         response: accumulatedText,
         isProcessing: false,

@@ -9,7 +9,7 @@ declare global {
     ipcRenderer: {
       loadState: () => Promise<State | null>
       saveState: (state: Omit<State, 'actions'>) => Promise<void>
-      startCompletion: (params: StartCompletionParams) => Promise<void>
+      startCompletion: (params: StartCompletionParams) => Promise<number>
       on: (
         event: string,
         listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
@@ -19,8 +19,7 @@ declare global {
         listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
       ) => void
       removeAllListeners: (event: string) => void
-      ackCompletion: (id: number) => void
-
+      cancelCompletion: (id: number) => void
       updater: {
         checkForUpdates: () => Promise<void>
         downloadUpdate: () => Promise<void>
@@ -46,7 +45,7 @@ window.ipcRenderer = {
     listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
   ) => ipcRenderer.once(event, listener),
   removeAllListeners: (event: string) => ipcRenderer.removeAllListeners(event),
-  ackCompletion: (id: number) => ipcRenderer.send(`completion-ack-${id}`),
+  cancelCompletion: (id: number) => ipcRenderer.send(`cancel-completion`, id),
 
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
@@ -143,11 +142,11 @@ function loading() {
 
 // ----------------------------------------------------------------------
 
-const { appendLoading, removeLoading } = loading()
-domReady().then(appendLoading)
+// const { appendLoading, removeLoading } = loading()
+// domReady().then(appendLoading)
 
-window.onmessage = (ev) => {
-  ev.data.payload === 'removeLoading' && removeLoading()
-}
+// window.onmessage = (ev) => {
+//   ev.data.payload === 'removeLoading' && removeLoading()
+// }
 
-setTimeout(removeLoading, 4999)
+// setTimeout(removeLoading, 4999)

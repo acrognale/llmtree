@@ -1,52 +1,79 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { LLM_PROVIDER_INFO } from '@/data/llmLists'
-import { Settings } from '@/state/state'
-import { LLMProvider } from '@/state/state'
+import { Settings, LLMProvider } from '@/state/state'
 
-async function* getCompletion({
-  settings,
-  history,
-  prompt,
-}: {
+interface CompletionParams {
   settings: Settings
-  history: { role: 'system' | 'user' | 'assistant'; content: string }[]
+  history: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
   prompt: string
-}): AsyncGenerator<string, void, unknown> {
-  const id = await initializeCompletion(settings, history, prompt)
+}
 
-  try {
-    yield* streamCompletion(id)
-  } catch (error) {
-    console.error('error', error)
-    throw error
-  } finally {
-    cleanupListeners(id)
+interface ProviderInfo {
+  provider: LLMProvider
+  providerConfig: Settings['providers'][LLMProvider]
+}
+
+class CompletionError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CompletionError'
   }
 }
 
-async function initializeCompletion(
-  settings: Settings,
-  history: { role: 'system' | 'user' | 'assistant'; content: string }[],
-  prompt: string,
-): Promise<number> {
-  if (!settings.selectedModel) {
-    throw new Error('No selected model')
+class CompletionManager {
+  private static instance: CompletionManager
+  private activeCompletions: Map<
+    number,
+    {
+      chunks: string[]
+      isDone: boolean
+      error: Error | null
+    }
+  > = new Map()
+  private pendingChunks: Map<number, string[]> = new Map()
+
+  private constructor() {
+    this.setupEventListeners()
   }
 
-  // Find the provider for the selected model
-  let provider: LLMProvider | undefined
-  let providerConfig: Settings['providers'][LLMProvider] | undefined
+  static getInstance(): CompletionManager {
+    if (!CompletionManager.instance) {
+      CompletionManager.instance = new CompletionManager()
+    }
+    return CompletionManager.instance
+  }
 
-  // Helper function to find provider
-  const findProvider = (
-    model: string,
-  ): {
-    provider: LLMProvider
-    providerConfig: Settings['providers'][LLMProvider]
-  } | null => {
-    // Check pre-set models first
+  async *getCompletion(
+    params: CompletionParams,
+  ): AsyncGenerator<string, void, unknown> {
+    console.log('[CompletionManager] Starting getCompletion', params)
+    const { provider, providerConfig } = this.findProvider(params.settings)
+    console.log('[CompletionManager] Provider found', {
+      provider,
+      providerConfig,
+    })
+    const id = await this.initializeCompletion(params, provider, providerConfig)
+    console.log(`[CompletionManager] Completion initialized with ID ${id}`)
+
+    try {
+      yield* this.streamCompletion(id)
+    } finally {
+      this.activeCompletions.delete(id)
+      this.pendingChunks.delete(id)
+      console.log(
+        `[CompletionManager] Completion finished, removed from activeCompletions ${id}`,
+      )
+    }
+  }
+
+  private findProvider(settings: Settings): ProviderInfo {
+    console.log('[CompletionManager] Finding provider for settings', settings)
+    if (!settings.selectedModel) {
+      throw new CompletionError('No selected model')
+    }
+
+    // Check pre-set models
     for (const [key, info] of Object.entries(LLM_PROVIDER_INFO)) {
-      if (info.modelList.includes(model)) {
+      if (info.modelList.includes(settings.selectedModel)) {
         return {
           provider: key as LLMProvider,
           providerConfig: settings.providers[key as LLMProvider],
@@ -54,9 +81,9 @@ async function initializeCompletion(
       }
     }
 
-    // If not found in pre-set models, check custom providers
+    // Check custom providers
     const customProvider = Object.entries(settings.providers).find(
-      ([_, config]) => config.models?.includes(model),
+      ([_, config]) => config.models?.includes(settings.selectedModel),
     )
 
     if (customProvider) {
@@ -66,125 +93,169 @@ async function initializeCompletion(
       }
     }
 
-    return null
+    throw new CompletionError('Selected model not found in any provider')
   }
 
-  // Use the helper function to find the provider
-  const result = findProvider(settings.selectedModel)
-  if (result !== null) {
-    provider = result.provider
-    providerConfig = result.providerConfig
-  } else {
-    throw new Error('Selected model not found in any provider')
-  }
-
-  const completionSettings = {
-    ...settings,
-    provider,
-    apiKey: providerConfig.apiKey,
-    baseUrl:
-      providerConfig.baseUrl || LLM_PROVIDER_INFO[provider]?.defaultBaseUrl,
-    model: settings.selectedModel,
-  }
-
-  window.ipcRenderer.startCompletion({
-    settings: completionSettings,
-    history,
-    prompt,
-    provider,
-    providerConfig,
-  })
-  return new Promise((resolve) =>
-    window.ipcRenderer.once('completion-id', (_, id) => {
-      window.ipcRenderer.ackCompletion(id)
-      resolve(id)
-    }),
-  )
-}
-
-async function* streamCompletion(
-  id: number,
-): AsyncGenerator<string, void, unknown> {
-  const chunkQueue: string[] = []
-  let resolveChunk: ((value: string | undefined) => void) | null = null
-  let isDone = false
-  let error: Error | null = null
-
-  const handleChunk = (chunk: string | undefined) => {
-    if (resolveChunk) {
-      resolveChunk(chunk)
-      resolveChunk = null
-    } else if (chunk) {
-      chunkQueue.push(chunk)
+  private async initializeCompletion(
+    params: CompletionParams,
+    provider: LLMProvider,
+    providerConfig: Settings['providers'][LLMProvider],
+  ): Promise<number> {
+    console.log('[CompletionManager] Initializing completion', {
+      provider,
+      providerConfig,
+    })
+    const completionSettings = {
+      ...params.settings,
+      provider,
+      apiKey: providerConfig.apiKey,
+      baseUrl:
+        providerConfig.baseUrl || LLM_PROVIDER_INFO[provider]?.defaultBaseUrl,
+      model: params.settings.selectedModel,
     }
-  }
 
-  const onDone = () => {
-    isDone = true
-    if (resolveChunk) {
-      resolveChunk(undefined)
-    }
-  }
+    return new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new CompletionError('Completion initialization timed out'))
+      }, 10000)
 
-  setupEventListeners(id, handleChunk, onDone, (err) => {
-    error = err
-    if (resolveChunk) {
-      resolveChunk(undefined)
-    }
-  })
-
-  try {
-    while (!isDone) {
-      if (error) throw error
-      if (chunkQueue.length > 0) {
-        yield chunkQueue.shift()!
-      } else {
-        const chunk = await new Promise<string | undefined>((resolve) => {
-          resolveChunk = resolve
+      window.ipcRenderer
+        .startCompletion({
+          settings: completionSettings,
+          history: params.history,
+          prompt: params.prompt,
+          provider,
+          providerConfig,
         })
-        if (chunk === undefined) {
-          if (error) throw error
-          break
-        }
+        .then((id: number) => {
+          clearTimeout(timeout)
+          this.activeCompletions.set(id, {
+            chunks: [],
+            isDone: false,
+            error: null,
+          })
+          // Move any pending chunks
+          const pendingChunks = this.pendingChunks.get(id) || []
+          this.activeCompletions.get(id)!.chunks.push(...pendingChunks)
+          this.pendingChunks.delete(id)
+          console.log(
+            `[CompletionManager] Completion initialized successfully ${id}`,
+          )
+          resolve(id)
+        })
+        .catch((error) => {
+          clearTimeout(timeout)
+          reject(new CompletionError(error.message))
+        })
+    })
+  }
+
+  private async *streamCompletion(
+    id: number,
+  ): AsyncGenerator<string, void, unknown> {
+    console.log(`[CompletionManager] Starting to stream completion ${id}`)
+    const completion = this.activeCompletions.get(id)
+    if (!completion) {
+      console.log(
+        `[CompletionManager] Completion ${id} not found, stopping stream`,
+      )
+      return
+    }
+
+    while (true) {
+      if (completion.error) {
+        console.error(
+          `[CompletionManager] Error in completion ${id}:`,
+          completion.error,
+        )
+        throw completion.error
+      }
+
+      if (completion.chunks.length > 0) {
+        const chunk = completion.chunks.shift()!
+        console.log(`[CompletionManager] Yielding chunk for completion ${id}`)
         yield chunk
+      } else if (completion.isDone) {
+        console.log(
+          `[CompletionManager] Completion ${id} is done, stopping stream`,
+        )
+        break
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 10)) // Small delay to prevent busy waiting
       }
     }
-  } finally {
-    cleanupListeners(id)
+  }
+
+  private setupEventListeners(): void {
+    console.log('[CompletionManager] Setting up event listeners')
+    window.ipcRenderer.on(
+      'completion-chunk',
+      (
+        _,
+        {
+          id,
+          chunk,
+        }: {
+          id: number
+          chunk: { choices: Array<{ delta: { content?: string } }> }
+        },
+      ) => {
+        console.log(`[CompletionManager] Received completion chunk`, {
+          id,
+          chunk,
+        })
+        const completion = this.activeCompletions.get(id)
+        const content = chunk.choices[0]?.delta?.content
+        if (content) {
+          if (completion) {
+            completion.chunks.push(content)
+          } else {
+            // Queue the chunk if the completion hasn't been initialized yet
+            if (!this.pendingChunks.has(id)) {
+              this.pendingChunks.set(id, [])
+            }
+            this.pendingChunks.get(id)!.push(content)
+          }
+        }
+      },
+    )
+
+    window.ipcRenderer.on(
+      'completion-error',
+      (_, { id, message }: { id: number; message: string }) => {
+        console.error(`[CompletionManager] Received completion error`, {
+          id,
+          message,
+        })
+        const completion = this.activeCompletions.get(id)
+        if (completion) {
+          completion.error = new CompletionError(message)
+        }
+      },
+    )
+
+    window.ipcRenderer.on('completion-done', (_, { id }: { id: number }) => {
+      console.log(`[CompletionManager] Received completion done`, { id })
+      const completion = this.activeCompletions.get(id)
+      if (completion) {
+        completion.isDone = true
+      }
+    })
+  }
+
+  cancelCompletion(id: number): void {
+    console.log(`[CompletionManager] Cancelling completion ${id}`)
+    const completion = this.activeCompletions.get(id)
+    if (completion) {
+      completion.isDone = true
+    }
+    this.activeCompletions.delete(id)
+    this.pendingChunks.delete(id)
+    window.ipcRenderer.cancelCompletion(id)
   }
 }
 
-function setupEventListeners(
-  id: number,
-  onChunk: (chunk: string) => void,
-  onDone: (usage: {
-    totalInputTokens: number
-    totalOutputTokens: number
-  }) => void,
-  onError: (error: Error) => void,
-) {
-  window.ipcRenderer.on(`completion-chunk-${id}`, (_, chunk) => {
-    const content = chunk.choices[0].delta.content
-    if (content) onChunk(content)
-  })
-
-  window.ipcRenderer.once(`completion-error-${id}`, (_, errorMessage) => {
-    onError(new Error(errorMessage))
-  })
-
-  window.ipcRenderer.once(`completion-done-${id}`, (_, usage) => {
-    onDone(usage)
-  })
+// Export a function to get the CompletionManager instance
+export function getCompletionManager(): CompletionManager {
+  return CompletionManager.getInstance()
 }
-
-function cleanupListeners(id: number) {
-  // eslint-disable-next-line no-extra-semi
-  ;[
-    'completion-chunk',
-    'completion-error',
-    'completion-done',
-    'completion-ready',
-  ].forEach((event) => window.ipcRenderer.removeAllListeners(`${event}-${id}`))
-}
-
-export { getCompletion }

@@ -3,12 +3,13 @@ import {
   CompletionParams,
   CompletionResult,
 } from '@/completions/CompletionProvider'
+import { CompletionId } from '@/completions/EventTypes'
 import { Transport } from '@/completions/Transport'
 
 // RendererCompletionManager
 export class RendererCompletionManager {
   private transport: Transport
-  private completionStatus: Map<number, CompletionStatus> = new Map()
+  private completionStatus: Map<CompletionId, CompletionStatus> = new Map()
 
   constructor(transport: Transport) {
     this.transport = transport
@@ -40,7 +41,7 @@ export class RendererCompletionManager {
   async *getCompletion(
     params: CompletionParams,
   ): AsyncGenerator<string, void, unknown> {
-    const id = Date.now()
+    const id = Date.now().toString()
     yield id as unknown as string // Return the ID first
 
     await this.transport.invoke('start-completion', {
@@ -56,7 +57,7 @@ export class RendererCompletionManager {
   }
 
   private async *streamCompletion(
-    id: number,
+    id: CompletionId,
   ): AsyncGenerator<string, void, unknown> {
     while (true) {
       const status = this.completionStatus.get(id)
@@ -78,7 +79,10 @@ export class RendererCompletionManager {
     }
   }
 
-  private handleCompletionChunk(id: number, chunk: CompletionResult): void {
+  private handleCompletionChunk(
+    id: CompletionId,
+    chunk: CompletionResult,
+  ): void {
     console.log('[renderer] Received chunk:', chunk)
     let status = this.completionStatus.get(id)
     if (!status) {
@@ -93,28 +97,34 @@ export class RendererCompletionManager {
   }
 
   private handleCompletionDone(
-    id: number,
+    id: CompletionId,
     usage: CompletionStatus['usage'],
   ): void {
     console.log('[renderer] Completion done')
-    const status = this.completionStatus.get(id)!
+    const status = this.completionStatus.get(id)
+    if (!status) {
+      return
+    }
     status.isDone = true
     status.usage = usage
   }
 
-  private handleCompletionError(id: number, error: Error): void {
+  private handleCompletionError(id: CompletionId, error: Error): void {
     console.log('[renderer] Completion error')
     const status = this.completionStatus.get(id)!
     status.error = error
   }
 
   private async handleFunctionCall(
-    id: number,
+    id: CompletionId,
     functionCall: { name: string; arguments: string },
   ): Promise<void> {
     // This is a placeholder. In a real implementation, you would handle the function call here,
     // possibly by calling a predefined function or by notifying the application to handle it.
-    console.log(`Function call received for completion ${id}:`, functionCall)
+    console.log(
+      `[renderer] Function call received for completion ${id}:`,
+      functionCall,
+    )
 
     // Send a dummy result back to the main process
     await this.transport.invoke('function-call-response', {
@@ -126,7 +136,7 @@ export class RendererCompletionManager {
     })
   }
 
-  private handleCompletionCancelled(id: number): void {
+  private handleCompletionCancelled(id: CompletionId): void {
     console.log('[renderer] Completion cancelled')
     const status = this.completionStatus.get(id)
     if (status) {
@@ -135,7 +145,7 @@ export class RendererCompletionManager {
     }
   }
 
-  cancelCompletion(id: number): void {
+  cancelCompletion(id: CompletionId): void {
     console.log('[renderer] Cancelling completion...')
     this.transport.send('cancel-completion', { id })
     const status = this.completionStatus.get(id)

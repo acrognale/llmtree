@@ -57,7 +57,7 @@ export class MainCompletionManager {
           console.log('[main] Completion was cancelled')
           return
         }
-        this.processChunk(params.id, chunk)
+        this.processChunk(params.id, chunk, params)
       }
       this.completeCompletion(params.id)
     } catch (error) {
@@ -65,8 +65,16 @@ export class MainCompletionManager {
     }
   }
 
-  private processChunk(id: CompletionId, chunk: CompletionResult): void {
-    const { status } = this.activeCompletions.get(id)!
+  private processChunk(
+    id: CompletionId,
+    chunk: CompletionResult,
+    params: CompletionParams & { id: CompletionId },
+  ): void {
+    const completion = this.activeCompletions.get(id)
+    if (!completion) {
+      return
+    }
+    const { status } = completion
     const content = chunk.choices[0]?.delta?.content
     const toolCalls = chunk.choices[0]?.delta?.tool_calls
 
@@ -76,7 +84,7 @@ export class MainCompletionManager {
     }
 
     if (toolCalls) {
-      this.handleToolCalls(id, toolCalls)
+      this.handleToolCalls(id, toolCalls, params)
     }
 
     if (chunk.usage) {
@@ -92,24 +100,48 @@ export class MainCompletionManager {
   private async handleToolCalls(
     id: CompletionId,
     toolCalls: Array<{ function: { name: string; arguments: string } }>,
+    params: CompletionParams & { id: CompletionId },
   ): Promise<void> {
     for (const toolCall of toolCalls) {
       const { name, arguments: args } = toolCall.function
+      console.log('[main] Requesting renderer to call function')
       this.transport.send('function-call-request', {
         id,
         payload: { name, arguments: args },
       })
 
       // Wait for the response from the renderer process
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      console.log('[main] Waiting for function call response...')
       const result = await this.transport.invoke('function-call-response', {
         id,
         payload: { name, result: 'result' },
       })
 
-      // Send the result back to the completion provider (this part depends on how your provider handles function results)
-      // This is a placeholder and might need to be adjusted based on your specific implementation
-      // this.provider.sendFunctionResult(id, name, result);
+      // Add the function call and result to the messages
+      const functionCallMessage = {
+        role: 'assistant' as const,
+        content: null,
+        function_call: { name, arguments: args },
+      }
+      const functionResultMessage = {
+        role: 'function' as const,
+        content: JSON.stringify(result),
+        name,
+      }
+
+      // Create a new params object with updated messages
+      const newParams: CompletionParams & { id: CompletionId } = {
+        ...params,
+        messages: [
+          ...params.messages,
+          functionCallMessage,
+          functionResultMessage,
+        ],
+      }
+
+      // Start a new completion with the updated messages
+      console.log('[main] Starting new completion with function result...')
+      await this.startCompletion(newParams)
     }
   }
 

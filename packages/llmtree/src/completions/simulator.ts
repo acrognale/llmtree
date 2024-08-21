@@ -12,8 +12,52 @@ class MockCompletionProvider implements CompletionProvider {
     params: CompletionParams,
   ): AsyncIterator<CompletionResult> {
     const messages = params.messages
+    let functionCallMade = false
+
     for (const message of messages) {
-      const words = message.content.split(' ')
+      if (
+        message.role === 'user' &&
+        message.content?.includes('weather') &&
+        !functionCallMade
+      ) {
+        // Simulate a tool call for weather information
+        yield {
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    function: {
+                      name: 'get_weather',
+                      arguments: JSON.stringify({ city: 'New York' }),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }
+        functionCallMade = true
+        continue
+      }
+
+      if (message.role === 'tool' && message.name === 'get_weather') {
+        // Process the weather information
+        const weatherInfo = JSON.parse(message.content!)
+        yield {
+          choices: [
+            {
+              delta: {
+                content: `Based on the weather information: The weather in ${weatherInfo.city} is ${weatherInfo.temperature}°C and ${weatherInfo.condition}.`,
+              },
+            },
+          ],
+        }
+        continue
+      }
+
+      // Normal message processing
+      const words = message.content?.split(' ') ?? []
       for (const word of words) {
         yield {
           choices: [
@@ -43,7 +87,7 @@ async function runSimulator() {
 
   // Simulate a completion request
   console.log('\n\n=== Starting regular completion ===')
-  const params: CompletionParams = {
+  const completionParams: CompletionParams = {
     messages: [
       {
         role: 'user',
@@ -56,7 +100,7 @@ async function runSimulator() {
   }
 
   console.log('[simulator] Starting completion...')
-  const completionGenerator = rendererManager.getCompletion(params)
+  const completionGenerator = rendererManager.getCompletion(completionParams)
 
   try {
     for await (const chunk of completionGenerator) {
@@ -101,6 +145,63 @@ async function runSimulator() {
     }
   } catch (error) {
     console.log('[simulator] Completion cancelled:', (error as Error).message)
+  }
+
+  // Simulate a completion request with a tool call
+  console.log('\n\n=== Starting completion with tool call ===')
+  const toolParams: CompletionParams = {
+    messages: [
+      {
+        role: 'user',
+        content: "What's the weather like today?",
+      },
+    ],
+    provider: 'openai',
+    apiKey: 'dummy-api-key',
+    model: 'gpt-3.5-turbo',
+    tools: [
+      {
+        type: 'function',
+        function: {
+          name: 'get_weather',
+          description: 'Get the current weather for a city',
+          parameters: {
+            type: 'object',
+            properties: {
+              city: { type: 'string' },
+            },
+            required: ['city'],
+          },
+        },
+      },
+    ],
+  }
+
+  console.log('[simulator] Starting completion with tool call...')
+  const toolCompletionGenerator = rendererManager.getCompletion(toolParams)
+
+  // Mock the function call response
+  transport.handle('function-call-response', async ({ payload }) => {
+    if (payload.name === 'get_weather') {
+      return {
+        city: 'New York',
+        temperature: 22,
+        condition: 'sunny',
+      }
+    }
+    return null
+  })
+
+  try {
+    for await (const chunk of toolCompletionGenerator) {
+      console.log('[simulator] Received chunk:', chunk)
+    }
+    console.log('[simulator] Completion finished')
+  } catch (error) {
+    console.error(
+      '[simulator] Error during completion:',
+      (error as Error).message,
+    )
   }
 }
 

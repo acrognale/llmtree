@@ -2,8 +2,11 @@ import { completion } from '@llmtree/litellm'
 
 // Define types for our completion parameters and results
 type Message = {
-  role: 'system' | 'user' | 'assistant'
-  content: string
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content?: string
+  tool_calls?: Array<{
+    function: { name: string; arguments: string }
+  }>
 }
 
 export type CompletionParams = {

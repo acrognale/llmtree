@@ -1,4 +1,5 @@
 import { completion } from '@llmtree/litellm'
+import { ResultStreaming } from '@llmtree/litellm/src/types'
 
 // Define types for our completion parameters and results
 type Message = {
@@ -47,16 +48,12 @@ export type CompletionResult = {
 
 // Define the CompletionProvider interface
 export interface CompletionProvider {
-  startCompletion(
-    params: CompletionParams,
-  ): AsyncGenerator<CompletionResult, void, unknown>
+  startCompletion(params: CompletionParams): Promise<ResultStreaming>
 }
 
 // Implement the LiteLLMCompletionProvider class
 export class LiteLLMCompletionProvider implements CompletionProvider {
-  async *startCompletion(
-    params: CompletionParams,
-  ): AsyncGenerator<CompletionResult, void, unknown> {
+  async startCompletion(params: CompletionParams): Promise<ResultStreaming> {
     console.log('[LiteLLMCompletionProvider] Starting completion')
 
     console.log(
@@ -65,17 +62,10 @@ export class LiteLLMCompletionProvider implements CompletionProvider {
         stream: true,
       }),
     )
-    const stream = await completion({
+    return await completion({
       ...params,
       stream: true,
     })
-
-    console.log(stream)
-
-    for await (const chunk of stream) {
-      console.log('[LiteLLMCompletionProvider] Yielding chunk:')
-      yield chunk as CompletionResult
-    }
   }
 }
 

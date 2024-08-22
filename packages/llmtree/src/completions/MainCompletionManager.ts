@@ -73,7 +73,7 @@ export class MainCompletionManager {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...rest } = params
-      const iterator = this.provider.startCompletion(rest)
+      const iterator = await this.provider.startCompletion(rest)
       for await (const chunk of iterator) {
         if (controller.signal.aborted) {
           console.log('[main] Completion was cancelled')

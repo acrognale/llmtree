@@ -88,7 +88,7 @@ export class RendererCompletionManager {
       return
     }
 
-    while (!status.isDone) {
+    while (!status.isDone || status.chunks.length > 0) {
       if (status.error) {
         throw status.error
       }

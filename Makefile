@@ -6,3 +6,6 @@ checkpoint:
 
 dist:
 	@CSC_IDENTITY_AUTO_DISCOVERY=false pnpm run build
+
+kill:
+	@ps aux | grep "llmtree/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . --no-sandbox" | grep -v "grep" | awk '{ print $$2 }' | xargs kill -9 || true

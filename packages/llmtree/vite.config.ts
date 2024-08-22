@@ -14,7 +14,7 @@ export default defineConfig(({ command }) => {
 
   const isServe = command === 'serve'
   const isBuild = command === 'build'
-  const sourcemap = isServe || !!process.env.VSCODE_DEBUG
+  const sourcemap = true
 
   return {
     resolve: {
@@ -28,7 +28,7 @@ export default defineConfig(({ command }) => {
       electron({
         main: {
           // Shortcut of `build.lib.entry`
-          entry: 'electron/main/index.ts',
+          entry: 'src/electron/main/index.ts',
           onstart(args) {
             if (process.env.VSCODE_DEBUG) {
               console.log(
@@ -46,7 +46,9 @@ export default defineConfig(({ command }) => {
               rollupOptions: {
                 external: Object.keys(
                   'dependencies' in pkg ? pkg.dependencies : {},
-                ).filter((dep) => !dep.startsWith('@llmtree/')),
+                )
+                  .filter((dep) => !dep.startsWith('@llmtree/'))
+                  .concat(['electron']),
               },
             },
             resolve: {
@@ -60,10 +62,10 @@ export default defineConfig(({ command }) => {
         preload: {
           // Shortcut of `build.rollupOptions.input`.
           // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-          input: 'electron/preload/index.ts',
+          input: 'src/electron/preload/index.ts',
           vite: {
             build: {
-              sourcemap: sourcemap ? 'inline' : undefined, // #332
+              sourcemap: true,
               minify: isBuild,
               outDir: 'dist-electron/preload',
               rollupOptions: {

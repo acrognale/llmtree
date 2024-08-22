@@ -78,9 +78,9 @@ async function runSimulator() {
   const transport = createMockTransport()
   const provider = new MockCompletionProvider()
 
-  const rendererManager = new RendererCompletionManager(transport)
+  const rendererManager = RendererCompletionManager.getInstance(transport)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const mainManager = new MainCompletionManager(transport, provider)
+  const mainManager = MainCompletionManager.getInstance(transport, provider)
 
   // Simulate a completion request
   console.log('\n\n=== Starting regular completion ===')

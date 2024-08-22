@@ -1,13 +1,63 @@
+import { IpcRenderer } from 'electron'
 import { produce } from 'immer'
 import { nanoid } from 'nanoid'
 
-import { getCompletionManager } from '@/completions'
+import { CompletionParams } from '@/completions/CompletionProvider'
+import { ElectronRendererTransport } from '@/completions/ElectronRendererTransport'
+import { RendererCompletionManager } from '@/completions/RendererCompletionManager'
+import { LLM_PROVIDER_INFO } from '@/data/llmLists'
 import { selectCurrentCanvas } from '@/state/selectors'
-import type { ActionCreator, Message, State } from '@/state/state'
+import type {
+  ActionCreator,
+  LLMProvider,
+  Message,
+  Settings,
+  State,
+} from '@/state/state'
 
 export type MessageActions = {
   fetchResponse: (prompt: string, targetNodeId: string) => Promise<void>
   retryMessage: (canvasId: string, nodeId: string, messageId: string) => void
+}
+
+function buildRequest(
+  settings: Settings,
+  history: { role: 'system' | 'user' | 'assistant'; content: string }[],
+  prompt: string,
+): CompletionParams {
+  if (!settings.selectedModel) {
+    throw new Error('No selected model')
+  }
+
+  const providerInfo = Object.entries(LLM_PROVIDER_INFO).find(([_, info]) =>
+    info.modelList.includes(settings.selectedModel!),
+  )
+
+  if (!providerInfo) {
+    throw new Error('Selected model not found')
+  }
+
+  const [provider, _] = providerInfo
+  const providerConfig = settings.providers[provider as LLMProvider]
+
+  if (!providerConfig) {
+    throw new Error('Provider configuration not found')
+  }
+
+  return {
+    provider: provider as LLMProvider,
+    apiKey: providerConfig.apiKey,
+    baseUrl: providerConfig.baseUrl,
+    model: settings.selectedModel,
+    system: settings.systemPrompt,
+    messages: [
+      ...history.filter((message) => message.content !== ''),
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  }
 }
 
 export const messageActions: ActionCreator<MessageActions> = (set, get) => {
@@ -82,19 +132,22 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
         { role: 'assistant' as const, content: response },
       ])
 
-      const completionManager = getCompletionManager()
-      console.log('[streamResponse] Calling completionManager.getCompletion')
-      const stream = completionManager.getCompletion({
-        settings: get().settings,
-        prompt: selectedText
-          ? `Focusing on ${selectedText}, ${prompt}`
-          : prompt,
-        history,
-      })
+      const completionManager = RendererCompletionManager.getInstance(
+        new ElectronRendererTransport(
+          window.ipcRenderer as unknown as IpcRenderer,
+        ),
+      )
 
-      console.log('[streamResponse] Starting for...await loop')
+      console.log('[streamResponse] Calling completionManager.getCompletion')
+      const { stream } = completionManager.getCompletion(
+        buildRequest(
+          get().settings,
+          history,
+          selectedText ? `Focusing on ${selectedText}, ${prompt}` : prompt,
+        ),
+      )
+
       for await (const chunk of stream) {
-        console.log('[Frontend] received chunk')
         accumulatedText += chunk
         requestAnimationFrame(() => {
           updateMessage({
@@ -103,7 +156,6 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
           })
         })
       }
-      console.log('[streamResponse] for...await loop completed')
 
       updateMessage({
         response: accumulatedText,

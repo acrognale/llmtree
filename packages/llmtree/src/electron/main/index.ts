@@ -1,3 +1,7 @@
+// eslint-disable-next-line import/order
+import sourceMapSupport from 'source-map-support'
+sourceMapSupport.install()
+
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -5,9 +9,10 @@ import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, shell, ipcMain, safeStorage } from 'electron'
 import Store from 'electron-store'
 
-import { setupCompletions } from './completions'
-import { update } from './update'
-
+import { LiteLLMCompletionProvider } from '@/completions/CompletionProvider'
+import { ElectronMainTransport } from '@/completions/ElectronMainTransport'
+import { MainCompletionManager } from '@/completions/MainCompletionManager'
+import { update } from '@/electron/main/update'
 import type { State } from '@/state/state'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -128,7 +133,10 @@ ipcMain.handle('load-state', () => {
   return loadState()
 })
 
-setupCompletions()
+MainCompletionManager.getInstance(
+  new ElectronMainTransport(ipcMain),
+  new LiteLLMCompletionProvider(),
+)
 
 app.whenReady().then(createWindow)
 

@@ -1,6 +1,6 @@
-import OpenAI from 'openai';
-import { ChatCompletionMessageParam } from 'openai/resources';
-import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
+import OpenAI from 'openai'
+import { ChatCompletionMessageParam } from 'openai/resources'
+import { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions'
 
 import {
   HandlerParams,
@@ -9,7 +9,7 @@ import {
   ConsistentResponseChoice,
   ConsistentResponseStreamingChoice,
   Message,
-} from '../types';
+} from '../types'
 
 function toConsistentResponseChoice(
   choice: OpenAI.Chat.ChatCompletion.Choice,
@@ -22,7 +22,7 @@ function toConsistentResponseChoice(
       content: choice.message.content,
       tool_calls: choice.message.tool_calls,
     },
-  };
+  }
 }
 
 function toConsistentResponseStreamingChoice(
@@ -36,7 +36,7 @@ function toConsistentResponseStreamingChoice(
       role: choice.delta.role as 'assistant' | 'system' | 'user' | 'tool',
       tool_calls: choice.delta.tool_calls,
     },
-  };
+  }
 }
 
 async function* toStreamingResponse(
@@ -47,13 +47,13 @@ async function* toStreamingResponse(
       model: chunk.model,
       created: chunk.created,
       choices: chunk.choices.map(toConsistentResponseStreamingChoice),
-    };
+    }
   }
 }
 
 interface HandlerConfig {
-  defaultApiKeyEnvVar: string;
-  defaultBaseUrl: string;
+  defaultApiKeyEnvVar: string
+  defaultBaseUrl: string
 }
 
 function toChatCompletionMessageParam(
@@ -66,16 +66,16 @@ function toChatCompletionMessageParam(
       return {
         role: message.role,
         content: message.content as string,
-      };
+      }
     case 'tool':
       return {
         content: message.content as string,
         role: 'tool',
         tool_call_id: message.tool_call_id as string,
-      };
+      }
   }
 
-  throw new Error('Unsupported message role');
+  throw new Error('Unsupported message role')
 }
 
 function toChatCompletionCreateParamsBase(
@@ -85,9 +85,9 @@ function toChatCompletionCreateParamsBase(
     ...params,
     tools: params.tools,
     messages: params.messages.map(toChatCompletionMessageParam),
-  };
+  }
 
-  return result;
+  return result
 }
 
 export function createOpenAICompatibleHandler(config: HandlerConfig) {
@@ -98,19 +98,19 @@ export function createOpenAICompatibleHandler(config: HandlerConfig) {
       apiKey: providedApiKey,
       baseUrl: providedBaseUrl,
       ...completionsParams
-    } = params;
-    const apiKey = providedApiKey ?? process.env[config.defaultApiKeyEnvVar];
-    const baseUrl = providedBaseUrl ?? config.defaultBaseUrl;
+    } = params
+    const apiKey = providedApiKey ?? process.env[config.defaultApiKeyEnvVar]
+    const baseUrl = providedBaseUrl ?? config.defaultBaseUrl
 
     const client = new OpenAI({
       apiKey: apiKey,
       baseURL: baseUrl,
       dangerouslyAllowBrowser: true,
-    });
+    })
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { provider, system, ...completionsParamsWithoutProvider } =
-      completionsParams;
+      completionsParams
 
     if (params.system) {
       completionsParamsWithoutProvider.messages = [
@@ -119,38 +119,40 @@ export function createOpenAICompatibleHandler(config: HandlerConfig) {
           content: params.system,
         },
         ...(completionsParams.messages || []),
-      ];
+      ]
     }
 
     // Add tools and tool_choice to the request if provided
     if (params.tools) {
-      completionsParamsWithoutProvider.tools = params.tools;
+      completionsParamsWithoutProvider.tools = params.tools
     }
     if (params.tool_choice) {
-      completionsParamsWithoutProvider.tool_choice = params.tool_choice;
+      completionsParamsWithoutProvider.tool_choice = params.tool_choice
     }
 
     if (params.stream) {
+      console.log('[genericOpenai] Creating openai completion')
       const response = await client.chat.completions.create({
         ...toChatCompletionCreateParamsBase(completionsParamsWithoutProvider),
         stream: true,
-      });
-      return toStreamingResponse(response);
+      })
+      console.log('[genericOpenai] Returning streaming completion')
+      return toStreamingResponse(response)
     }
 
     const response = await client.chat.completions.create({
       ...toChatCompletionCreateParamsBase(completionsParamsWithoutProvider),
       stream: false,
-    });
+    })
 
     return {
       choices: response.choices.map(toConsistentResponseChoice),
       usage: response.usage,
-    };
-  };
+    }
+  }
 }
 
 export const GenericOpenAIHandler = createOpenAICompatibleHandler({
   defaultApiKeyEnvVar: 'GENERIC_OPENAI_API_KEY',
   defaultBaseUrl: 'https://api.openai.com/v1',
-});
+})

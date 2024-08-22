@@ -11,12 +11,22 @@ interface CompletionStream {
   stream: AsyncGenerator<string, void, unknown>
 }
 
-// RendererCompletionManager
 export class RendererCompletionManager {
   private transport: Transport
   private completionStatus: Map<CompletionId, CompletionStatus> = new Map()
 
-  constructor(transport: Transport) {
+  private static instance: RendererCompletionManager
+
+  public static getInstance(transport: Transport): RendererCompletionManager {
+    if (!RendererCompletionManager.instance) {
+      RendererCompletionManager.instance = new RendererCompletionManager(
+        transport,
+      )
+    }
+    return new RendererCompletionManager(transport)
+  }
+
+  private constructor(transport: Transport) {
     this.transport = transport
     this.setupEventListeners()
   }
@@ -190,10 +200,4 @@ export class RendererCompletionManager {
       status.error = new Error('Completion cancelled')
     }
   }
-}
-
-export function createRendererCompletionManager(
-  transport: Transport,
-): RendererCompletionManager {
-  return new RendererCompletionManager(transport)
 }

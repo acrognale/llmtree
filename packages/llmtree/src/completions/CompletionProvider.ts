@@ -47,20 +47,33 @@ export type CompletionResult = {
 
 // Define the CompletionProvider interface
 export interface CompletionProvider {
-  startCompletion(params: CompletionParams): AsyncIterator<CompletionResult>
+  startCompletion(
+    params: CompletionParams,
+  ): AsyncGenerator<CompletionResult, void, unknown>
 }
 
 // Implement the LiteLLMCompletionProvider class
 export class LiteLLMCompletionProvider implements CompletionProvider {
   async *startCompletion(
     params: CompletionParams,
-  ): AsyncIterator<CompletionResult> {
+  ): AsyncGenerator<CompletionResult, void, unknown> {
+    console.log('[LiteLLMCompletionProvider] Starting completion')
+
+    console.log(
+      JSON.stringify({
+        ...params,
+        stream: true,
+      }),
+    )
     const stream = await completion({
       ...params,
       stream: true,
     })
 
+    console.log(stream)
+
     for await (const chunk of stream) {
+      console.log('[LiteLLMCompletionProvider] Yielding chunk:')
       yield chunk as CompletionResult
     }
   }

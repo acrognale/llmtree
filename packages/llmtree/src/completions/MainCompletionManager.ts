@@ -15,7 +15,22 @@ export class MainCompletionManager {
     { status: CompletionStatus; controller: AbortController }
   > = new Map()
 
-  constructor(transport: Transport, provider: CompletionProvider) {
+  private static instance: MainCompletionManager
+
+  public static getInstance(
+    transport: Transport,
+    provider: CompletionProvider,
+  ): MainCompletionManager {
+    if (!MainCompletionManager.instance) {
+      MainCompletionManager.instance = new MainCompletionManager(
+        transport,
+        provider,
+      )
+    }
+    return MainCompletionManager.instance
+  }
+
+  private constructor(transport: Transport, provider: CompletionProvider) {
     this.transport = transport
     this.provider = provider
     this.setupEventListeners()
@@ -56,7 +71,9 @@ export class MainCompletionManager {
     }
 
     try {
-      const iterator = this.provider.startCompletion(params)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...rest } = params
+      const iterator = this.provider.startCompletion(rest)
       for await (const chunk of iterator) {
         if (controller.signal.aborted) {
           console.log('[main] Completion was cancelled')
@@ -78,7 +95,7 @@ export class MainCompletionManager {
     chunk: CompletionResult,
     params: CompletionParams & { id: CompletionId },
   ): 'tool_call' | 'not_found' | null {
-    console.log('[main] Processing chunk', chunk, id)
+    console.log('[main] Processing chunk', JSON.stringify(chunk, null, 2), id)
     const completion = this.activeCompletions.get(id)
     if (!completion) {
       return 'not_found'
@@ -194,11 +211,4 @@ export class MainCompletionManager {
     this.activeCompletions.delete(id)
     this.transport.send('completion-cancelled', { id })
   }
-}
-
-export function createMainCompletionManager(
-  transport: Transport,
-  provider: CompletionProvider,
-): MainCompletionManager {
-  return new MainCompletionManager(transport, provider)
 }

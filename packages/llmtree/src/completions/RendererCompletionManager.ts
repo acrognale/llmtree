@@ -6,6 +6,11 @@ import {
 import { CompletionId } from '@/completions/EventTypes'
 import { Transport } from '@/completions/Transport'
 
+interface CompletionStream {
+  id: CompletionId
+  stream: AsyncGenerator<string, void, unknown>
+}
+
 // RendererCompletionManager
 export class RendererCompletionManager {
   private transport: Transport
@@ -36,46 +41,53 @@ export class RendererCompletionManager {
     this.transport.on('completion-cancelled', ({ id }) => {
       this.handleCompletionCancelled(id)
     })
+
+    this.transport.on('completion-continued', ({ id }) => {
+      this.handleCompletionContinued(id)
+    })
   }
 
-  async *getCompletion(
-    params: CompletionParams,
-  ): AsyncGenerator<string, void, unknown> {
+  getCompletion(params: CompletionParams): CompletionStream {
     const id = Date.now().toString()
-    yield id as unknown as string // Return the ID first
-
-    await this.transport.invoke('start-completion', {
+    this.completionStatus.set(id, { chunks: [], isDone: false, error: null })
+    const stream = this.streamCompletion(id, params)
+    return {
       id,
-      payload: params,
-    })
-
-    try {
-      yield* this.streamCompletion(id)
-    } finally {
-      this.completionStatus.delete(id)
+      stream,
     }
   }
 
   private async *streamCompletion(
     id: CompletionId,
+    params: CompletionParams,
   ): AsyncGenerator<string, void, unknown> {
-    while (true) {
-      const status = this.completionStatus.get(id)
-      if (!status) {
-        break // Exit if the status is removed (due to cancellation)
-      }
+    this.transport.invoke('start-completion', { id, payload: params })
+    try {
+      yield* this.streamCompletionContent(id)
+    } finally {
+      this.completionStatus.delete(id)
+    }
+  }
 
+  private async *streamCompletionContent(
+    id: CompletionId,
+  ): AsyncGenerator<string, void, unknown> {
+    const status = this.completionStatus.get(id)
+    if (!status) {
+      console.log('[renderer::streamCompletionContent] Status not found')
+      return
+    }
+
+    while (!status.isDone) {
       if (status.error) {
         throw status.error
       }
 
       if (status.chunks.length > 0) {
         yield status.chunks.shift()!
-      } else if (status.isDone) {
-        break
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 10))
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 10))
     }
   }
 
@@ -83,9 +95,19 @@ export class RendererCompletionManager {
     id: CompletionId,
     chunk: CompletionResult,
   ): void {
-    console.log('[renderer] Received chunk:', chunk)
+    if (chunk.choices[0]?.delta.content) {
+      console.log(
+        '[renderer] Received chunk:',
+        chunk.choices[0].delta.content,
+        id,
+      )
+    }
     let status = this.completionStatus.get(id)
     if (!status) {
+      console.log(
+        '[renderer::handleCompletionChunk] Status not found for completion',
+        id,
+      )
       status = { chunks: [], isDone: false, error: null }
       this.completionStatus.set(id, status)
     }
@@ -103,6 +125,10 @@ export class RendererCompletionManager {
     console.log('[renderer] Completion done')
     const status = this.completionStatus.get(id)
     if (!status) {
+      console.log(
+        '[renderer::handleCompletionDone] Status not found for completion',
+        id,
+      )
       return
     }
     status.isDone = true
@@ -142,6 +168,16 @@ export class RendererCompletionManager {
     if (status) {
       status.isDone = true
       status.error = new Error('Completion cancelled')
+    }
+  }
+
+  private handleCompletionContinued(id: CompletionId): void {
+    console.log('[renderer] Completion continued')
+    const status = this.completionStatus.get(id)
+    if (status) {
+      status.isDone = false
+      status.chunks = []
+      status.error = null
     }
   }
 

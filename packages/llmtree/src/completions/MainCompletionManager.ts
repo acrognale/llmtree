@@ -38,6 +38,7 @@ export class MainCompletionManager {
 
   private async startCompletion(
     params: CompletionParams & { id: CompletionId },
+    isContinuation: boolean = false,
   ): Promise<void> {
     const controller = new AbortController()
     console.log('[main] Starting completion', params.id)
@@ -50,6 +51,10 @@ export class MainCompletionManager {
       controller,
     })
 
+    if (isContinuation) {
+      this.transport.send('completion-continued', { id: params.id })
+    }
+
     try {
       const iterator = this.provider.startCompletion(params)
       for await (const chunk of iterator) {
@@ -57,7 +62,10 @@ export class MainCompletionManager {
           console.log('[main] Completion was cancelled')
           return
         }
-        this.processChunk(params.id, chunk, params)
+        const chunkResult = this.processChunk(params.id, chunk, params)
+        if (chunkResult === 'tool_call') {
+          return
+        }
       }
       this.completeCompletion(params.id)
     } catch (error) {
@@ -69,10 +77,11 @@ export class MainCompletionManager {
     id: CompletionId,
     chunk: CompletionResult,
     params: CompletionParams & { id: CompletionId },
-  ): void {
+  ): 'tool_call' | 'not_found' | null {
+    console.log('[main] Processing chunk', chunk, id)
     const completion = this.activeCompletions.get(id)
     if (!completion) {
-      return
+      return 'not_found'
     }
     const { status } = completion
     const content = chunk.choices[0]?.delta?.content
@@ -83,10 +92,6 @@ export class MainCompletionManager {
       this.transport.send('completion-chunk', { id, payload: chunk })
     }
 
-    if (toolCalls) {
-      this.handleToolCalls(id, toolCalls, params)
-    }
-
     if (chunk.usage) {
       status.usage = {
         totalInputTokens: 0, // This should be calculated based on input
@@ -95,6 +100,13 @@ export class MainCompletionManager {
           chunk.usage.completion_tokens,
       }
     }
+
+    if (toolCalls) {
+      this.handleToolCalls(id, toolCalls, params)
+      return 'tool_call'
+    }
+
+    return null
   }
 
   private async handleToolCalls(
@@ -124,7 +136,7 @@ export class MainCompletionManager {
         function_call: { name, arguments: args },
       }
       const functionResultMessage = {
-        role: 'function' as const,
+        role: 'tool' as const,
         content: JSON.stringify(result),
         name,
       }
@@ -141,7 +153,7 @@ export class MainCompletionManager {
 
       // Start a new completion with the updated messages
       console.log('[main] Starting new completion with function result...')
-      await this.startCompletion(newParams)
+      await this.startCompletion(newParams, true)
     }
   }
 
@@ -155,7 +167,7 @@ export class MainCompletionManager {
     const { status } = completion
     status.isDone = true
     this.transport.send('completion-done', { id, payload: status.usage })
-    this.activeCompletions.delete(id)
+    // this.activeCompletions.delete(id)
   }
 
   private handleCompletionError(id: CompletionId, error: Error): void {

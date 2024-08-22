@@ -16,9 +16,14 @@ export interface EventMap {
     payload: { name: string; arguments: string }
   }
   'completion-cancelled': { id: CompletionId }
+  'completion-continued': { id: CompletionId }
 
   // Renderer to Main events
-  'start-completion': { id: CompletionId; payload: CompletionParams }
+  'start-completion': {
+    id: CompletionId
+    payload: CompletionParams
+    isContinuation?: boolean
+  }
   'cancel-completion': { id: CompletionId }
 
   // Bidirectional events

@@ -8,71 +8,68 @@ import { createMockTransport } from '@/completions/MockTransport'
 import { RendererCompletionManager } from '@/completions/RendererCompletionManager'
 
 class MockCompletionProvider implements CompletionProvider {
+  private async *streamByToken(content?: string) {
+    const words = content?.split(' ') || []
+    for (const word of words) {
+      yield {
+        choices: [
+          {
+            delta: {
+              content: word + ' ',
+            },
+          },
+        ],
+        usage: {
+          completion_tokens: word.length,
+        },
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100)) // Simulate delay
+    }
+  }
+
   async *startCompletion(
     params: CompletionParams,
   ): AsyncIterator<CompletionResult> {
     const messages = params.messages
-    let functionCallMade = false
+    const targetMessage = messages[messages.length - 1]
 
-    for (const message of messages) {
-      if (
-        message.role === 'user' &&
-        message.content?.includes('weather') &&
-        !functionCallMade
-      ) {
-        // Simulate a tool call for weather information
-        yield {
-          choices: [
-            {
-              delta: {
-                tool_calls: [
-                  {
-                    function: {
-                      name: 'get_weather',
-                      arguments: JSON.stringify({ city: 'New York' }),
-                    },
+    if (
+      targetMessage.role === 'user' &&
+      targetMessage.content?.includes('weather')
+    ) {
+      // Simulate a tool call for weather information
+      return yield {
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  function: {
+                    name: 'get_weather',
+                    arguments: JSON.stringify({ city: 'New York' }),
                   },
-                ],
-              },
+                },
+              ],
             },
-          ],
-        }
-        functionCallMade = true
-        continue
-      }
-
-      if (message.role === 'tool' && message.name === 'get_weather') {
-        // Process the weather information
-        const weatherInfo = JSON.parse(message.content!)
-        yield {
-          choices: [
-            {
-              delta: {
-                content: `Based on the weather information: The weather in ${weatherInfo.city} is ${weatherInfo.temperature}°C and ${weatherInfo.condition}.`,
-              },
-            },
-          ],
-        }
-        continue
-      }
-
-      // Normal message processing
-      const words = message.content?.split(' ') ?? []
-      for (const word of words) {
-        yield {
-          choices: [
-            {
-              delta: {
-                content: word + ' ',
-              },
-            },
-          ],
-          usage: {
-            completion_tokens: word.length,
           },
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100)) // Simulate delay
+        ],
       }
+    }
+
+    if (targetMessage.role === 'tool') {
+      // Process the weather information
+      const weatherInfo = JSON.parse(targetMessage.content!)
+      for await (const word of this.streamByToken(
+        `Based on the weather information: The weather in ${weatherInfo.city} is ${weatherInfo.temperature}°C and ${weatherInfo.condition}.`,
+      )) {
+        yield word
+      }
+      return
+    }
+
+    // Normal message processing
+    for await (const word of this.streamByToken(targetMessage.content)) {
+      yield word
     }
   }
 }
@@ -100,7 +97,8 @@ async function runSimulator() {
   }
 
   console.log('[simulator] Starting completion...')
-  const completionGenerator = rendererManager.getCompletion(completionParams)
+  const { stream: completionGenerator } =
+    rendererManager.getCompletion(completionParams)
 
   try {
     for await (const chunk of completionGenerator) {
@@ -129,10 +127,8 @@ async function runSimulator() {
   }
 
   console.log('[simulator] Starting completion to be cancelled...')
-  const cancelGenerator = rendererManager.getCompletion(cancelParams)
-  const cancelId = await cancelGenerator
-    .next()
-    .then((result) => result.value as unknown as number)
+  const { id: cancelId, stream: cancelGenerator } =
+    rendererManager.getCompletion(cancelParams)
 
   setTimeout(() => {
     rendererManager.cancelCompletion(cancelId)
@@ -178,7 +174,8 @@ async function runSimulator() {
   }
 
   console.log('[simulator] Starting completion with tool call...')
-  const toolCompletionGenerator = rendererManager.getCompletion(toolParams)
+  const { stream: toolCompletionGenerator } =
+    rendererManager.getCompletion(toolParams)
 
   // Mock the function call response
   transport.handle('function-call-response', async ({ payload }) => {

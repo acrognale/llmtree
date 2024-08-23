@@ -16,7 +16,7 @@ export const LLM_PROVIDER_INFO: Record<string, LlmProviderInfo> = {
   openai: {
     name: 'OpenAI',
     icon: <img src={OpenAIIcon} alt="OpenAI" className="w-4 h-4" />,
-    modelList: ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
+    modelList: ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-4o-mini'],
   },
   anthropic: {
     name: 'Anthropic',

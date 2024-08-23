@@ -49,12 +49,28 @@ function buildRequest(
     apiKey: providerConfig.apiKey,
     baseUrl: providerConfig.baseUrl,
     model: settings.selectedModel,
-    system: settings.systemPrompt,
+    system: `You are a helpful assistant. You can add nodes to the graph with the given content using the addNode function and the content argument.`,
     messages: [
-      ...history.filter((message) => message.content !== ''),
+      ...history,
       {
         role: 'user',
         content: prompt,
+      },
+    ],
+    tools: [
+      {
+        type: 'function',
+        function: {
+          name: 'addNode',
+          description: 'Add a node to the graph with the given content.',
+          parameters: {
+            type: 'object',
+            properties: {
+              content: { type: 'string' },
+            },
+            required: ['content'],
+          },
+        },
       },
     ],
   }

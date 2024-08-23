@@ -6,6 +6,8 @@ import { defineConfig } from 'vite'
 import electron from 'vite-plugin-electron/simple'
 import renderer from 'vite-plugin-electron-renderer'
 
+import { spawn } from 'child_process'
+
 import pkg from './package.json'
 
 // https://vitejs.dev/config/
@@ -35,7 +37,13 @@ export default defineConfig(({ command }) => {
                 /* For `.vscode/.debug.script.mjs` */ '[startup] Electron App',
               )
             } else {
-              args.startup()
+              // args.startup()
+              console.log('[startup] Electron App in debug mode')
+              // Use spawn to start Electron with --inspect
+              spawn('electron', ['.', '--inspect=5858'], {
+                stdio: 'inherit',
+                env: { ...process.env, ELECTRON_ENABLE_LOGGING: 'true' },
+              })
             }
           },
           vite: {

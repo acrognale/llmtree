@@ -8,7 +8,7 @@ export class ElectronMainTransport implements Transport {
   constructor(private ipc: IpcMain) {}
 
   send<T extends EventName>(channel: T, message: EventPayload<T>): void {
-    const contents = webContents.getFocusedWebContents()
+    const contents = webContents.getAllWebContents()[0]
     if (contents) {
       contents.send(channel, message)
     }
@@ -37,10 +37,12 @@ export class ElectronMainTransport implements Transport {
     return new Promise((resolve, reject) => {
       const contents = webContents.getFocusedWebContents()
       if (contents) {
-        contents.send(channel, message)
+        console.log('invoke', channel, message)
         this.ipc.once(`${channel}:response`, (_, response) => {
+          console.log('response', response)
           resolve(response)
         })
+        contents.send(channel, message)
       } else {
         reject(new Error('No focused WebContents found'))
       }

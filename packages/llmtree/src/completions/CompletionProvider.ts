@@ -35,8 +35,10 @@ export type CompletionParams = {
 export type CompletionResult = {
   choices: Array<{
     delta: {
-      content?: string
+      content?: string | null
       tool_calls?: Array<{
+        id: string
+        type: string
         function: { name: string; arguments: string }
       }>
     }
@@ -54,14 +56,7 @@ export interface CompletionProvider {
 // Implement the LiteLLMCompletionProvider class
 export class LiteLLMCompletionProvider implements CompletionProvider {
   async startCompletion(params: CompletionParams): Promise<ResultStreaming> {
-    console.log('[LiteLLMCompletionProvider] Starting completion')
-
-    console.log(
-      JSON.stringify({
-        ...params,
-        stream: true,
-      }),
-    )
+    console.log('[LiteLLMCompletionProvider] Starting completion', params)
     return await completion({
       ...params,
       stream: true,

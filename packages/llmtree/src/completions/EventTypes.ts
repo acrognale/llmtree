@@ -27,7 +27,7 @@ export interface EventMap {
   'cancel-completion': { id: CompletionId }
 
   // Bidirectional events
-  'function-call-response': {
+  'function-call-request:response': {
     id: CompletionId
     payload: { name: string; result: unknown }
   }

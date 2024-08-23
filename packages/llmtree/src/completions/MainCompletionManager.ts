@@ -51,28 +51,29 @@ export class MainCompletionManager {
     })
   }
 
-  private async startCompletion(
+  async startCompletion(
     params: CompletionParams & { id: CompletionId },
     isContinuation: boolean = false,
   ): Promise<void> {
     const controller = new AbortController()
     console.log('[main] Starting completion', params.id)
-    this.activeCompletions.set(params.id, {
-      status: {
-        chunks: [],
-        isDone: false,
-        error: null,
-      },
-      controller,
-    })
-
-    if (isContinuation) {
+    if (!isContinuation) {
+      this.activeCompletions.set(params.id, {
+        status: {
+          chunks: [],
+          isDone: false,
+          error: null,
+        },
+        controller,
+      })
+    } else {
       this.transport.send('completion-continued', { id: params.id })
     }
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { id, ...rest } = params
+      console.log(rest)
       const iterator = await this.provider.startCompletion(rest)
       for await (const chunk of iterator) {
         if (controller.signal.aborted) {
@@ -80,6 +81,9 @@ export class MainCompletionManager {
           return
         }
         const chunkResult = this.processChunk(params.id, chunk, params)
+
+        // If the chunk contains a tool call, we should not complete the completion,
+        // as the tool call will be handled by the renderer
         if (chunkResult === 'tool_call') {
           return
         }
@@ -95,7 +99,6 @@ export class MainCompletionManager {
     chunk: CompletionResult,
     params: CompletionParams & { id: CompletionId },
   ): 'tool_call' | 'not_found' | null {
-    console.log('[main] Processing chunk', JSON.stringify(chunk, null, 2), id)
     const completion = this.activeCompletions.get(id)
     if (!completion) {
       return 'not_found'
@@ -104,8 +107,7 @@ export class MainCompletionManager {
     const content = chunk.choices[0]?.delta?.content
     const toolCalls = chunk.choices[0]?.delta?.tool_calls
 
-    if (content) {
-      status.chunks.push(content)
+    if (content !== undefined) {
       this.transport.send('completion-chunk', { id, payload: chunk })
     }
 
@@ -134,28 +136,23 @@ export class MainCompletionManager {
     for (const toolCall of toolCalls) {
       const { name, arguments: args } = toolCall.function
       console.log('[main] Requesting renderer to call function')
-      this.transport.send('function-call-request', {
+      const result = await this.transport.invoke('function-call-request', {
         id,
         payload: { name, arguments: args },
       })
 
-      // Wait for the response from the renderer process
-      console.log('[main] Waiting for function call response...')
-      const result = await this.transport.invoke('function-call-response', {
-        id,
-        payload: { name, result: 'result' },
-      })
+      delete toolCall.index
 
-      // Add the function call and result to the messages
+      // Add the function call and result to the messwages
       const functionCallMessage = {
         role: 'assistant' as const,
-        content: null,
-        function_call: { name, arguments: args },
+        tool_calls: [toolCall],
       }
+
       const functionResultMessage = {
         role: 'tool' as const,
         content: JSON.stringify(result),
-        name,
+        tool_call_id: toolCall.id,
       }
 
       // Create a new params object with updated messages

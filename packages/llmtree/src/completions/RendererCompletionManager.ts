@@ -105,13 +105,6 @@ export class RendererCompletionManager {
     id: CompletionId,
     chunk: CompletionResult,
   ): void {
-    if (chunk.choices[0]?.delta.content) {
-      console.log(
-        '[renderer] Received chunk:',
-        chunk.choices[0].delta.content,
-        id,
-      )
-    }
     let status = this.completionStatus.get(id)
     if (!status) {
       console.log(
@@ -147,8 +140,15 @@ export class RendererCompletionManager {
 
   private handleCompletionError(id: CompletionId, error: Error): void {
     console.log('[renderer] Completion error')
-    const status = this.completionStatus.get(id)!
-    status.error = error
+    const completion = this.completionStatus.get(id)
+    if (!completion) {
+      console.log(
+        '[renderer::handleCompletionError] Status not found for completion',
+        id,
+      )
+      return
+    }
+    completion.error = error
   }
 
   private async handleFunctionCall(
@@ -163,11 +163,11 @@ export class RendererCompletionManager {
     )
 
     // Send a dummy result back to the main process
-    await this.transport.invoke('function-call-response', {
+    this.transport.send('function-call-request:response', {
       id,
       payload: {
         name: functionCall.name,
-        result: null,
+        result: 'success',
       },
     })
   }

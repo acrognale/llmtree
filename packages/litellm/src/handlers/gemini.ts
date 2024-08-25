@@ -141,6 +141,8 @@ export async function GeminiHandler(
   const response = await chat.sendMessage(content);
 
   return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
     model: params.model,
     created: Date.now(),
     choices: [

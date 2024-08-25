@@ -98,7 +98,13 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(response),
-    choices: choices,
+    choices: choices.map(choice => ({
+      ...choice,
+      message: {
+        ...choice.message,
+        role: 'assistant' as const,
+      },
+    })),
   };
 }
 

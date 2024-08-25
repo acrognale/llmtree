@@ -1,5 +1,5 @@
-import Replicate, { Prediction } from 'replicate';
 import EventSource from 'eventsource';
+import Replicate, { Prediction } from 'replicate';
 
 import {
   HandlerParams,
@@ -9,8 +9,8 @@ import {
   HandlerParamsStreaming,
 } from '../types';
 import { combinePrompts } from '../utils/combinePrompts';
-import { toUsage } from '../utils/toUsage';
 import { getUnixTimestamp } from '../utils/getUnixTimestamp';
+import { toUsage } from '../utils/toUsage';
 
 async function sleep(time: number): Promise<unknown> {
   return new Promise((res) => {

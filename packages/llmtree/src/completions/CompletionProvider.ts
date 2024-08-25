@@ -48,15 +48,9 @@ export interface CompletionProvider {
 // Implement the LiteLLMCompletionProvider class
 export class LiteLLMCompletionProvider implements CompletionProvider {
   async startCompletion(params: CompletionParams): Promise<ResultStreaming> {
-    console.log('[LiteLLMCompletionProvider] Starting completion', params)
     return await completion({
       ...params,
       stream: true,
     })
   }
-}
-
-// Factory function to create a LiteLLMCompletionProvider
-export function createLiteLLMCompletionProvider(): CompletionProvider {
-  return new LiteLLMCompletionProvider()
 }

@@ -10,6 +10,14 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh', '@limegrass/import-alias', 'import'],
   rules: {
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      },
+    ],
     'react-refresh/only-export-components': [
       'warn',
       { allowConstantExport: true },

@@ -1,10 +1,11 @@
-import { IpcRenderer } from 'electron'
 import { produce } from 'immer'
 import { nanoid } from 'nanoid'
 
-import { CompletionParams } from '@/completions/CompletionProvider'
-import { ElectronRendererTransport } from '@/completions/ElectronRendererTransport'
-import { CompletionManager } from '@/completions/RendererCompletionManager'
+import { CompletionManager } from '@/completions/CompletionManager'
+import {
+  CompletionParams,
+  LiteLLMCompletionProvider,
+} from '@/completions/CompletionProvider'
 import { LLM_PROVIDER_INFO } from '@/data/llmLists'
 import { selectCurrentCanvas } from '@/state/selectors'
 import type {
@@ -149,13 +150,11 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
       ])
 
       const completionManager = CompletionManager.getInstance(
-        new ElectronRendererTransport(
-          window.ipcRenderer as unknown as IpcRenderer,
-        ),
+        new LiteLLMCompletionProvider(),
       )
 
       console.log('[streamResponse] Calling completionManager.getCompletion')
-      const { stream } = completionManager.getCompletion(
+      const stream = completionManager.startCompletion(
         buildRequest(
           get().settings,
           history,

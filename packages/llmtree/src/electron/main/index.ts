@@ -9,9 +9,6 @@ import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, shell, ipcMain, safeStorage } from 'electron'
 import Store from 'electron-store'
 
-import { LiteLLMCompletionProvider } from '@/completions/CompletionProvider'
-import { ElectronMainTransport } from '@/completions/ElectronMainTransport'
-import { MainCompletionManager } from '@/completions/MainCompletionManager'
 import { update } from '@/electron/main/update'
 import type { State } from '@/state/state'
 
@@ -132,11 +129,6 @@ ipcMain.handle('save-state', (_, state) => {
 ipcMain.handle('load-state', () => {
   return loadState()
 })
-
-MainCompletionManager.getInstance(
-  new ElectronMainTransport(ipcMain),
-  new LiteLLMCompletionProvider(),
-)
 
 app.whenReady().then(createWindow)
 

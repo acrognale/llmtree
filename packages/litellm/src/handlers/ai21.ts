@@ -86,6 +86,7 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
       finish_reason:
         FINISH_REASON_MAP[completion.finishReason.reason] ?? 'stop',
       index: i,
+      refusal: null,
       message: {
         content: completion.data.text,
         role: 'assistant' as Role,

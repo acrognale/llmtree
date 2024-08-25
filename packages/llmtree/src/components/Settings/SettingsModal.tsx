@@ -3,11 +3,16 @@ import { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { LLMSettings } from '@/components/Settings/LLMSettings'
-import { useStore } from '@/state/store'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { useStore } from '@/state/store'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -64,8 +69,7 @@ export function SettingsModal({
               variant="ghost"
               size="icon"
               className="absolute right-4 top-4"
-              onClick={onClose}
-            >
+              onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           )}

@@ -60,6 +60,8 @@ async function* toStream(
   model: string,
 ): AsyncIterable<StreamingChunk> {
   yield {
+    id: `chatcmpl-${Date.now()}`, // Generate a unique ID
+    object: 'chat.completion.chunk',
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(response),
@@ -88,9 +90,12 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
         content: completion.data.text,
         role: 'assistant' as Role,
       },
+      logprobs: null, // Add this line
     };
   });
   return {
+    id: `chatcmpl-${Date.now()}`, // Generate a unique ID
+    object: 'chat.completion',
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(response),

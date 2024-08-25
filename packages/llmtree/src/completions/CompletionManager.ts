@@ -1,4 +1,8 @@
-import { StreamingChunk } from '@llmtree/litellm/src/types'
+import {
+  AssistantMessage,
+  StreamingChunk,
+  ToolMessage,
+} from '@llmtree/litellm/src/types'
 import { nanoid } from 'nanoid'
 
 import { CompletionStatus, CompletionId } from '@/completions/Completion'
@@ -134,7 +138,14 @@ export class CompletionManager {
     if (toolCalls) {
       let newParams: CompletionParams & { id?: CompletionId } = { ...params }
       for (const toolCall of toolCalls) {
+        if (!toolCall.function) {
+          continue
+        }
         const { name, arguments: args } = toolCall.function
+        if (!name || !args) {
+          continue
+        }
+
         console.log('[CompletionManager] Function call requested:', name)
 
         // Here you would implement the actual function call logic
@@ -144,15 +155,24 @@ export class CompletionManager {
         })
 
         // Add the function call and result to the messages
-        const functionCallMessage = {
+        const functionCallMessage: AssistantMessage = {
           role: 'assistant' as const,
-          tool_calls: [toolCall],
+          tool_calls: [
+            {
+              id: toolCall.id!,
+              type: 'function',
+              function: {
+                name,
+                arguments: args,
+              },
+            },
+          ],
         }
 
-        const functionResultMessage = {
+        const functionResultMessage: ToolMessage = {
           role: 'tool' as const,
           content: JSON.stringify(result),
-          tool_call_id: toolCall.id,
+          tool_call_id: toolCall.id!,
         }
 
         // Update the params object with new messages

@@ -1,106 +1,40 @@
+import { OpenAI } from 'openai';
+
 import { EmbeddingParams, EmbeddingResponse } from './embedding';
 
 export type Role = 'system' | 'user' | 'assistant' | 'function' | 'tool';
 
-export type SystemMessage = {
-  role: 'system';
-  content: string;
-};
+export type SystemMessage = OpenAI.ChatCompletionSystemMessageParam;
+export type UserMessage = OpenAI.ChatCompletionUserMessageParam;
+export type AssistantMessage = OpenAI.ChatCompletionAssistantMessageParam;
+export type ToolMessage = OpenAI.ChatCompletionToolMessageParam;
+export type Message = OpenAI.ChatCompletionMessageParam;
 
-export type UserMessage = {
-  role: 'user';
-  content: string;
-};
+export type FinishReason = OpenAI.ChatCompletion.Choice['finish_reason'];
 
-export type AssistantMessage = {
-  role: 'assistant';
-  content?: string;
-  refusal?: string;
-  tool_calls?: Array<{
-    id: string;
-    type: string;
-    function: { name: string; arguments: string };
-  }>;
-};
+export type FunctionDefinition =
+  OpenAI.ChatCompletionMessageToolCall['function'];
 
-export type ToolMessage = {
-  role: 'tool';
-  content: string;
-  tool_call_id: string;
-};
+export type Tool = OpenAI.ChatCompletionNamedToolChoice;
 
-export type Message =
-  | SystemMessage
-  | UserMessage
-  | AssistantMessage
-  | ToolMessage;
+export type ToolCall =
+  OpenAI.ChatCompletionChunk.Choice.Delta.ToolCall.Function;
 
-export type FinishReason =
-  | 'stop'
-  | 'length'
-  | 'tool_calls'
-  | 'content_filter'
-  | 'function_call'
-  | null;
+export type StreamingToolCall =
+  OpenAI.ChatCompletionChunk.Choice.Delta.ToolCall;
 
-interface FunctionDefinition {
-  name: string;
-  description?: string;
-  parameters?: Record<string, unknown>;
-  strict?: boolean;
-}
+export type ConsistentResponseChoice = OpenAI.ChatCompletion.Choice;
 
-export interface Tool {
-  type: 'function';
-  function: FunctionDefinition;
-}
+export type ConsistentResponseStreamingChoice =
+  OpenAI.ChatCompletionChunk.Choice;
 
-export interface ToolCall {
-  arguments?: string;
-  name?: string;
-}
+export type ConsistentResponseUsage = OpenAI.CompletionUsage;
 
-export interface StreamingToolCall {
-  index: number;
-  id?: string;
-  function?: ToolCall;
-  type?: 'function';
-}
-
-export interface ConsistentResponseChoice {
-  finish_reason: FinishReason | null;
-  index: number;
-  message: Message;
-}
-
-export interface ConsistentResponseStreamingChoice
-  extends Omit<ConsistentResponseChoice, 'message'> {
-  delta: {
-    content: string | null;
-    tool_calls?: Array<StreamingToolCall>;
-    role: Role;
-    refusal?: string;
-  };
-}
-
-export interface ConsistentResponseUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-export interface ConsistentResponse {
-  choices: ConsistentResponseChoice[];
-  model?: string;
-  created?: number;
-  usage?: ConsistentResponseUsage;
-}
+export type ConsistentResponse = OpenAI.ChatCompletion;
 
 export type ResultNotStreaming = ConsistentResponse;
 
-export interface StreamingChunk extends Omit<ConsistentResponse, 'choices'> {
-  choices: ConsistentResponseStreamingChoice[];
-}
+export type StreamingChunk = OpenAI.ChatCompletionChunk;
 
 export type ResultStreaming = AsyncIterable<StreamingChunk>;
 

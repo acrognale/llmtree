@@ -25,6 +25,8 @@ function createMockAsyncIterable(
   ...chunks: (CompletionStringChunk | CompletionToolCallChunk)[]
 ): AsyncIterable<StreamingChunk> {
   return {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     async *[Symbol.asyncIterator]() {
       for (const chunk of chunks) {
         if (chunk.type === 'string') {

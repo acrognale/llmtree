@@ -10,7 +10,6 @@ import {
   ConsistentResponseStreamingChoice,
   Message,
   Tool,
-  ToolChoice,
 } from '../types';
 
 function toConsistentResponseChoice(

@@ -1,5 +1,5 @@
 export type CompletionStatus = {
-  chunks: string[]
+  controller: AbortController
   isDone: boolean
   error: Error | null
   usage?: {
@@ -7,3 +7,5 @@ export type CompletionStatus = {
     totalOutputTokens: number
   }
 }
+
+export type CompletionId = string | number

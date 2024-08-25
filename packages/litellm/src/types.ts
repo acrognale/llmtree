@@ -2,11 +2,38 @@ import { EmbeddingParams, EmbeddingResponse } from './embedding';
 
 export type Role = 'system' | 'user' | 'assistant' | 'function' | 'tool';
 
-export interface Message {
-  role: Role;
-  content: string | null;
-  tool_call_id?: string;
-}
+export type SystemMessage = {
+  role: 'system';
+  content: string;
+};
+
+export type UserMessage = {
+  role: 'user';
+  content: string;
+};
+
+export type AssistantMessage = {
+  role: 'assistant';
+  content?: string;
+  refusal?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: string;
+    function: { name: string; arguments: string };
+  }>;
+};
+
+export type ToolMessage = {
+  role: 'tool';
+  content: string;
+  tool_call_id: string;
+};
+
+export type Message =
+  | SystemMessage
+  | UserMessage
+  | AssistantMessage
+  | ToolMessage;
 
 export type FinishReason =
   | 'stop'
@@ -34,7 +61,7 @@ export interface ToolCall {
 }
 
 export interface StreamingToolCall {
-  index?: number;
+  index: number;
   id?: string;
   function?: ToolCall;
   type?: 'function';
@@ -43,22 +70,16 @@ export interface StreamingToolCall {
 export interface ConsistentResponseChoice {
   finish_reason: FinishReason | null;
   index: number;
-  message: {
-    role: 'system' | 'user' | 'assistant' | 'tool' | 'function';
-    content: string | null;
-    name?: string;
-    tool_calls?: Array<StreamingToolCall>;
-    function_call?: {
-      name: string;
-      arguments: string;
-    } | null;
-  };
+  message: Message;
 }
 
 export interface ConsistentResponseStreamingChoice
   extends Omit<ConsistentResponseChoice, 'message'> {
-  delta: Omit<ConsistentResponseChoice['message'], 'tool_calls'> & {
+  delta: {
+    content: string | null;
     tool_calls?: Array<StreamingToolCall>;
+    role: Role;
+    refusal?: string;
   };
 }
 

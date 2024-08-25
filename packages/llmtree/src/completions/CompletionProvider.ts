@@ -1,14 +1,5 @@
 import { completion } from '@llmtree/litellm'
-import { ResultStreaming } from '@llmtree/litellm/src/types'
-
-// Define types for our completion parameters and results
-type Message = {
-  role: 'system' | 'user' | 'assistant' | 'tool'
-  content?: string
-  tool_calls?: Array<{
-    function: { name: string; arguments: string }
-  }>
-}
+import { Message, ResultStreaming } from '@llmtree/litellm/src/types'
 
 export type CompletionParams = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +28,7 @@ export type CompletionResult = {
     delta: {
       content?: string | null
       tool_calls?: Array<{
+        index?: number
         id: string
         type: string
         function: { name: string; arguments: string }

@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 
 import { CompletionParams } from '@/completions/CompletionProvider'
 import { ElectronRendererTransport } from '@/completions/ElectronRendererTransport'
-import { RendererCompletionManager } from '@/completions/RendererCompletionManager'
+import { CompletionManager } from '@/completions/RendererCompletionManager'
 import { LLM_PROVIDER_INFO } from '@/data/llmLists'
 import { selectCurrentCanvas } from '@/state/selectors'
 import type {
@@ -148,7 +148,7 @@ export const messageActions: ActionCreator<MessageActions> = (set, get) => {
         { role: 'assistant' as const, content: response },
       ])
 
-      const completionManager = RendererCompletionManager.getInstance(
+      const completionManager = CompletionManager.getInstance(
         new ElectronRendererTransport(
           window.ipcRenderer as unknown as IpcRenderer,
         ),

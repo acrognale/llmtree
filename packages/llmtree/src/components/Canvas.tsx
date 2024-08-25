@@ -5,6 +5,7 @@ import ReactFlow, {
   MiniMap,
   useReactFlow,
   useStoreApi,
+  useViewport,
 } from 'reactflow'
 import { shallow } from 'zustand/shallow'
 
@@ -40,11 +41,11 @@ export function Canvas() {
     shallow,
   )
 
-  const store = useStoreApi()
+  const { x, y, zoom } = useViewport()
 
   useHashChange({ nodes })
 
-  const { fitView, zoomTo } = useReactFlow()
+  const { fitView, zoomTo, getViewport } = useReactFlow()
   useHotkeys('f', () => {
     zoomTo(0.5, {
       duration: 500,
@@ -64,12 +65,11 @@ export function Canvas() {
     })
   })
 
-  useHotkeys('cmd+n', (event) => {
-    event.preventDefault()
-    const { x, y, zoom } = store.getState()
+  useHotkeys('meta+n', () => {
+    const { x, y, zoom } = getViewport()
     const position = {
-      x: (event.clientX - x) / zoom,
-      y: (event.clientY - y) / zoom,
+      x: -x / zoom + window.innerWidth / (2 * zoom),
+      y: -y / zoom + window.innerHeight / (2 * zoom),
     }
     addNode(position)
   })

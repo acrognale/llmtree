@@ -32,12 +32,35 @@ export type CanvasOperations = {
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
   forkNodeAtMessage: (nodeId: string, forkedMessages: Message[]) => ChatNode
+  addNode: (position: { x: number; y: number }) => void
 }
 
 export const canvasOperations: ActionCreator<CanvasOperations> = (
   set,
   get,
 ) => ({
+  addNode: (position: { x: number; y: number }) => {
+    const newNode: ChatNode = {
+      id: nanoid(),
+      type: 'chat',
+      data: {
+        messages: [],
+        promptInput: 'Enter a prompt...',
+        selectedText: null,
+      },
+      position,
+      width: 600,
+      height: 600,
+    }
+
+    set(
+      produce((state: State) => {
+        const currentCanvas = selectCurrentCanvas(state)
+        if (!currentCanvas) return
+        currentCanvas.nodes.push(newNode)
+      })
+    )
+  },
   onSetDraggedNode: (node?: Node) => {
     set({
       draggedNode: node as ChatNode | undefined,

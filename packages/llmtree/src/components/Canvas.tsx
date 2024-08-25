@@ -4,6 +4,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
   useReactFlow,
+  useStoreApi,
 } from 'reactflow'
 import { shallow } from 'zustand/shallow'
 
@@ -26,7 +27,7 @@ const connectionLineStyle = { stroke: '#F6AD55', strokeWidth: 3 }
 const defaultEdgeOptions = { style: connectionLineStyle, type: 'chat' }
 
 export function Canvas() {
-  const { nodes, edges, onNodesChange, onEdgesChange } = useStore(
+  const { nodes, edges, onNodesChange, onEdgesChange, addNode } = useStore(
     (state) => ({
       nodes:
         state.canvases.find((c) => c.id === state.currentCanvasId)?.nodes || [],
@@ -34,9 +35,12 @@ export function Canvas() {
         state.canvases.find((c) => c.id === state.currentCanvasId)?.edges || [],
       onNodesChange: state.actions.onNodesChange,
       onEdgesChange: state.actions.onEdgesChange,
+      addNode: state.actions.addNode,
     }),
     shallow,
   )
+
+  const store = useStoreApi()
 
   useHashChange({ nodes })
 
@@ -58,6 +62,16 @@ export function Canvas() {
       duration: 500,
       padding: 0.25,
     })
+  })
+
+  useHotkeys('cmd+n', (event) => {
+    event.preventDefault()
+    const { x, y, zoom } = store.getState()
+    const position = {
+      x: (event.clientX - x) / zoom,
+      y: (event.clientY - y) / zoom,
+    }
+    addNode(position)
   })
 
   return (

@@ -3,7 +3,7 @@ import {
   PanelLeftClose,
   PencilIcon,
   Code,
-  CircleX,
+  Trash2,
   Settings,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -12,6 +12,8 @@ import { shallow } from 'zustand/shallow'
 
 import { ProviderQuickSelect } from '@/components/ProviderQuickSelect'
 import { SettingsModal } from '@/components/Settings/SettingsModal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useStore } from '@/state/store'
 
 export function Sidebar() {
@@ -84,56 +86,59 @@ export function Sidebar() {
 
   return (
     <div
-      className={`bg-gray-100 border-r border-gray-300 transition-all duration-300 ${
+      className={`bg-background border-r border-input transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       } flex flex-col h-full z-10 pt-4`}>
       {!isCollapsed && <ProviderQuickSelect />}
       <div className={`px-4 pt-4 ${isCollapsed ? 'hidden' : ''} flex-grow`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Canvases</h2>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="text-gray-500 hover:text-gray-700">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}>
             <Settings className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
-        <ul className="mb-4">
+        <ul className="mb-4 space-y-2">
           {canvases.map((canvas) => (
             <li
               key={canvas.id}
               onClick={() => switchCanvas(canvas.id)}
               className={`cursor-pointer p-2 rounded flex items-center justify-between ${
                 canvas.id === currentCanvasId
-                  ? 'bg-blue-200'
-                  : 'hover:bg-gray-200'
+                  ? 'bg-secondary'
+                  : 'hover:bg-accent'
               }`}>
               {editingCanvasId === canvas.id ? (
-                <input
+                <Input
                   type="text"
                   value={editedName}
                   onChange={(e) => setEditedName(e.target.value)}
                   onBlur={() => handleSaveCanvasName()}
                   onKeyDown={(e) => handleSaveCanvasName(e)}
-                  className="w-full px-2 py-1 rounded"
+                  className="w-full"
                   autoFocus
                 />
               ) : (
                 <>
                   <span>{canvas.name}</span>
                   <div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() =>
                         handleEditCanvasName(canvas.id, canvas.name)
-                      }
-                      className="text-gray-500 hover:text-gray-700 mr-2">
+                      }>
                       <PencilIcon className="w-4 h-4" />
-                    </button>
+                    </Button>
                     {canvases.length > 1 && (
-                      <button
-                        onClick={() => handleDeleteCanvas(canvas.id)}
-                        className="text-red-500 hover:text-red-700">
-                        <CircleX className="w-4 h-4" />
-                      </button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteCanvas(canvas.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
                 </>
@@ -141,47 +146,42 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
-        <button
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
-          onClick={handleAddCanvas}>
+        <Button className="w-full" onClick={handleAddCanvas}>
           Add New Canvas
-        </button>
+        </Button>
       </div>
       <div className={`p-2 ${isCollapsed ? '' : 'hidden'} flex-grow`}>
         {canvases.map((canvas, index) => (
-          <button
+          <Button
             key={canvas.id}
-            onClick={() => switchCanvas(canvas.id)}
-            className={`w-full mb-2 p-2 rounded ${
-              canvas.id === currentCanvasId
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-300 hover:bg-gray-400'
-            }`}>
+            variant={canvas.id === currentCanvasId ? 'default' : 'secondary'}
+            className="w-full mb-2"
+            onClick={() => switchCanvas(canvas.id)}>
             {index + 1}
-          </button>
+          </Button>
         ))}
-        <button
-          onClick={handleAddCanvas}
-          className="w-full bg-green-500 text-white rounded p-2">
+        <Button variant="outline" className="w-full" onClick={handleAddCanvas}>
           +
-        </button>
+        </Button>
       </div>
       {isCollapsed && (
-        <button
-          onClick={() => toggleDevMode()}
-          className="w-full bg-purple-500 text-white rounded p-2 mt-2">
+        <Button
+          variant="outline"
+          className="w-full mt-2"
+          onClick={() => toggleDevMode()}>
           <Code className="w-6 h-6 mx-auto" />
-        </button>
+        </Button>
       )}
-      <button
-        onClick={toggleSidebar}
-        className="w-full bg-gray-200 p-2 text-gray-700 hover:bg-gray-300 mt-auto flex">
+      <Button
+        variant="ghost"
+        className="w-full mt-auto"
+        onClick={toggleSidebar}>
         {isCollapsed ? (
           <PanelLeft className="w-8 h-8" />
         ) : (
-          <PanelLeftClose className="w-8 h-8  " />
+          <PanelLeftClose className="w-8 h-8" />
         )}
-      </button>
+      </Button>
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

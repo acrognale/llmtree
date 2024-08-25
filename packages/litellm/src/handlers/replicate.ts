@@ -1,13 +1,7 @@
 import EventSource from 'eventsource';
 import Replicate, { Prediction } from 'replicate';
 
-import {
-  HandlerParams,
-  HandlerParamsNotStreaming,
-  ResultStreaming,
-  ResultNotStreaming,
-  HandlerParamsStreaming,
-} from '../types';
+import { HandlerParams, ResultStreaming, ResultNotStreaming } from '../types';
 import { combinePrompts } from '../utils/combinePrompts';
 import { getUnixTimestamp } from '../utils/getUnixTimestamp';
 import { toUsage } from '../utils/toUsage';
@@ -48,31 +42,6 @@ async function handleNonStreamingPrediction(
       },
     ],
   };
-}
-
-export async function ReplicateHandler(
-  params: HandlerParams,
-): Promise<ResultNotStreaming | ResultStreaming> {
-  const apiKey = params.apiKey ?? process.env.REPLICATE_API_KEY;
-  const replicate = new Replicate({
-    auth: apiKey,
-  });
-  const model = params.model.split('replicate/')[1];
-  const version = model.split(':')[1];
-
-  const prompt = combinePrompts(params.messages);
-  const prediction = await replicate.predictions.create({
-    version: version,
-    stream: params.stream,
-    input: {
-      prompt,
-    },
-  });
-
-  if (params.stream) {
-    return handleStreamingPrediction(prompt, prediction, params.model);
-  }
-  return handleNonStreamingPrediction(prompt, prediction, replicate);
 }
 
 async function* handleStreamingPrediction(
@@ -159,7 +128,7 @@ export async function ReplicateHandler(
   });
 
   if (params.stream) {
-    return handleStreamingPrediction(prompt, prediction);
+    return handleStreamingPrediction(prompt, prediction, params.model);
   }
   return handleNonStreamingPrediction(prompt, prediction, replicate);
 }

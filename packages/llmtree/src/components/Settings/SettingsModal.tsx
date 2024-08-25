@@ -1,4 +1,3 @@
-import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
@@ -59,42 +58,35 @@ export function SettingsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isOnboarding ? 'Add Your First Provider' : 'Settings'}
           </DialogTitle>
-          {!isOnboarding && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-4"
-              onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </DialogHeader>
-        {isOnboarding ? (
-          <div className="mb-6">
-            <p className="text-gray-600 mb-4">
-              To get started, configure an LLM below.
-            </p>
-            <LLMSettings />
-          </div>
-        ) : (
-          <Tabs defaultValue="llm-providers" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="llm-providers">LLM Providers</TabsTrigger>
-              <TabsTrigger value="system-prompt">System Prompt</TabsTrigger>
-            </TabsList>
-            <TabsContent value="llm-providers">
+        <div className="flex-grow overflow-y-auto">
+          {isOnboarding ? (
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                To get started, configure an LLM below.
+              </p>
               <LLMSettings />
-            </TabsContent>
-            <TabsContent value="system-prompt">
-              <SystemPromptSettings />
-            </TabsContent>
-          </Tabs>
-        )}
+            </div>
+          ) : (
+            <Tabs defaultValue="llm-providers" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="llm-providers">LLM Providers</TabsTrigger>
+                <TabsTrigger value="system-prompt">System Prompt</TabsTrigger>
+              </TabsList>
+              <TabsContent value="llm-providers">
+                <LLMSettings />
+              </TabsContent>
+              <TabsContent value="system-prompt">
+                <SystemPromptSettings />
+              </TabsContent>
+            </Tabs>
+          )}
+        </div>
         <Button onClick={handleSave} className="w-full mt-6">
           {isOnboarding ? 'Save and Continue' : 'Save and Close'}
         </Button>

@@ -62,7 +62,7 @@ export function Canvas() {
 
   return (
     <ReactFlow
-      className="h-full top-0 bottom-0 left-0 right-0 absolute!"
+      className="h-full top-0 bottom-0 left-0 right-0 absolute! bg-canvas nodrag"
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
@@ -78,7 +78,7 @@ export function Canvas() {
       fitView
       connectionLineStyle={connectionLineStyle}
       defaultEdgeOptions={defaultEdgeOptions}>
-      <Background />
+      <Background className="bg-canvas" />
       <Controls />
       <MiniMap />
     </ReactFlow>

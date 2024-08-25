@@ -90,8 +90,8 @@ export function ChatNode({ id, data }: NodeProps<TChatNode['data']>) {
             onClick={handleDelete}
             className={`
           absolute -top-4 -right-4
-          bg-white rounded-full p-1 
-          text-red-500 hover:text-red-700 shadow-md 
+          bg-white rounded-full p-1
+          text-red-500 hover:text-red-700 shadow-md
           transition-all duration-200 ease-in-out
           ${isHovering ? 'scale-100' : 'scale-0'}
           origin-center
@@ -155,7 +155,7 @@ export function ChatNode({ id, data }: NodeProps<TChatNode['data']>) {
         isVisible={true}
         minWidth={180}
         minHeight={100}
-        lineClassName="border-2 border-blue-400"
+        lineClassName="!border-none"
         handleClassName="h-3 w-3 bg-white border-2 border-blue-400"
       />
     </div>

@@ -70,7 +70,7 @@ export async function ReplicateHandler(
   });
 
   if (params.stream) {
-    return handleStreamingPrediction(prompt, prediction);
+    return handleStreamingPrediction(prompt, prediction, params.model);
   }
   return handleNonStreamingPrediction(prompt, prediction, replicate);
 }
@@ -78,6 +78,7 @@ export async function ReplicateHandler(
 async function* handleStreamingPrediction(
   prompt: string,
   prediction: Prediction,
+  model: string,
 ): ResultStreaming {
   if (!prediction?.urls?.stream) {
     throw new Error();
@@ -117,7 +118,7 @@ async function* handleStreamingPrediction(
     const combined = results.reduce((acc, curr) => (acc += curr), '');
     yield {
       id: `chatcmpl-${Date.now()}`,
-      model: params.model,
+      model: model,
       object: 'chat.completion.chunk',
       created: getUnixTimestamp(),
       usage: toUsage(prompt, combined),

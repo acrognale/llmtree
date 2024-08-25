@@ -134,7 +134,7 @@ export async function GeminiHandler(
       {
         index: 0,
         message: {
-          role: 'model',
+          role: 'assistant',
           content: response.response.text(),
         },
         finish_reason:

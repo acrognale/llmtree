@@ -73,6 +73,8 @@ export async function CohereHandler(
   }
 
   return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
     model: params.model,
     created: getUnixTimestamp(),
     usage: toUsage(textsCombined, response.body.generations[0].text),

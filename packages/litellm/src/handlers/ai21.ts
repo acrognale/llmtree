@@ -98,7 +98,9 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(response),
-    choices: choices,
+    choices: choices as ConsistentResponseChoice[],
+    object: 'chat.completion',
+    id: `chatcmpl-${Date.now()}`,
   };
 }
 

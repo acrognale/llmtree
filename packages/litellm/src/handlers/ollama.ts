@@ -24,6 +24,8 @@ function toStreamingChunk(
 ): StreamingChunk {
   return {
     id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    id: `chatcmpl-${Date.now()}`,
     object: 'chat.completion.chunk',
     model: model,
     created: getUnixTimestamp(),

@@ -31,6 +31,9 @@ async function handleNonStreamingPrediction(
     '',
   );
   return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    model: prediction.version,
     usage: toUsage(prompt, output),
     created: getUnixTimestamp(),
     choices: [
@@ -134,18 +137,6 @@ async function* handleStreamingPrediction(
     results = [];
   }
 }
-
-export async function ReplicateHandler(
-  params: HandlerParamsNotStreaming,
-): Promise<ResultNotStreaming>;
-
-export async function ReplicateHandler(
-  params: HandlerParamsStreaming,
-): Promise<ResultStreaming>;
-
-export async function ReplicateHandler(
-  params: HandlerParams,
-): Promise<ResultNotStreaming | ResultStreaming>;
 
 export async function ReplicateHandler(
   params: HandlerParams,

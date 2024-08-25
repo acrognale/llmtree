@@ -63,52 +63,12 @@ async function* toStreamingResponse(
   }
 }
 
-function mapRole(role: string): 'system' | 'user' | 'assistant' | 'tool' {
-  switch (role) {
-    case 'model':
-      return 'assistant';
-    case 'user':
-      return 'user';
-    default:
-      return 'user';
-  }
-}
 
 function toGeminiParams(params: HandlerParams): StartChatParams & ModelParams {
   const messages = params.messages.map((msg) => ({
-    role: msg.role as 'user' | 'model',
-    parts: [{ text: msg.content as string }],
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
   }));
-
-  messages.forEach((msg) => {
-    if (msg.role === 'assistant') {
-      msg.role = 'model';
-    }
-  });
-
-  return {
-    generationConfig: {
-      temperature: params.temperature ?? undefined,
-      topP: params.top_p ?? undefined,
-      maxOutputTokens: params.max_tokens ?? undefined,
-    },
-    systemInstruction: params.system,
-    history: messages,
-    model: params.model,
-  };
-}
-
-function toGeminiParams(params: HandlerParams): StartChatParams & ModelParams {
-  const messages = params.messages.map((msg) => ({
-    role: msg.role as 'user' | 'model',
-    parts: [{ text: msg.content as string }],
-  }));
-
-  messages.forEach((msg) => {
-    if (msg.role === 'assistant') {
-      msg.role = 'model';
-    }
-  });
 
   return {
     generationConfig: {

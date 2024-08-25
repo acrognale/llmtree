@@ -44,7 +44,7 @@ export type ResultStreaming = AsyncIterable<StreamingChunk>;
 
 export type Result = ResultNotStreaming | ResultStreaming;
 
-export interface ChatCompletionMessage extends OpenAI.ChatCompletionMessage {
+export interface ChatCompletionMessage extends Omit<OpenAI.ChatCompletionMessage, 'refusal'> {
   refusal?: string | null;
 }
 

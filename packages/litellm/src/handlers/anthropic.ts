@@ -20,8 +20,10 @@ function toFinishReson(string: string): FinishReason {
   return 'stop';
 }
 
-function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
+function toResponse(anthropicResponse: Anthropic.Message): ConsistentResponse {
   return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
     model: anthropicResponse.model,
     created: getUnixTimestamp(),
     usage: {
@@ -50,26 +52,6 @@ function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
   };
 }
 
-function toAnthropicParams(params: HandlerParams): MessageCreateParams {
-  return {
-    max_tokens: params.max_tokens ?? 4096,
-    messages: params.messages.map((msg) => {
-      if (msg.role === 'function') {
-        return {
-          role: 'assistant',
-          content: msg.content as string,
-          name: msg.name,
-        };
-      }
-      return {
-        role: msg.role as 'assistant' | 'user',
-        content: msg.content as string,
-      };
-    }),
-    system: params.system,
-    model: params.model,
-  };
-}
 
 function toStreamingChunk(
   model: string,
@@ -111,11 +93,19 @@ function toAnthropicParams(params: HandlerParams): MessageCreateParams {
           name: msg.name,
         };
       }
+      if (msg.role === 'system') {
+        return {
+          role: 'user',
+          content: msg.content as string,
+        };
+      }
       return {
         role: msg.role as 'assistant' | 'user',
         content: msg.content as string,
       };
-    }),
+    }).filter((msg): msg is { role: 'assistant' | 'user'; content: string } => 
+      msg.role === 'assistant' || msg.role === 'user'
+    ),
     system: params.system,
     model: params.model,
   };

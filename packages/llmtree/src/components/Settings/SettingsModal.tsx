@@ -1,11 +1,13 @@
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
 
 import { LLMSettings } from '@/components/Settings/LLMSettings'
-import { cls } from '@/helpers/ui'
 import { useStore } from '@/state/store'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -29,8 +31,8 @@ function SystemPromptSettings() {
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">System Prompt</h3>
-      <textarea
-        className="w-full h-48 p-2 border rounded-md"
+      <Textarea
+        className="w-full h-48"
         value={localSystemPrompt}
         onChange={(e) => setLocalSystemPrompt(e.target.value)}
       />
@@ -43,8 +45,6 @@ export function SettingsModal({
   onClose,
   isOnboarding = false,
 }: SettingsModalProps) {
-  const [selectedTab, setSelectedTab] = useState(0)
-
   useHotkeys('escape', onClose)
 
   const handleSave = () => {
@@ -52,23 +52,24 @@ export function SettingsModal({
     onClose()
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 w-[32rem] max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>
             {isOnboarding ? 'Add Your First Provider' : 'Settings'}
-          </h2>
+          </DialogTitle>
           {!isOnboarding && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4"
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700">
-              <X className="w-5 h-5" />
-            </button>
+            >
+              <X className="h-4 w-4" />
+            </Button>
           )}
-        </div>
+        </DialogHeader>
         {isOnboarding ? (
           <div className="mb-6">
             <p className="text-gray-600 mb-4">
@@ -77,51 +78,23 @@ export function SettingsModal({
             <LLMSettings />
           </div>
         ) : (
-          <TabGroup
-            vertical
-            selectedIndex={selectedTab}
-            onChange={setSelectedTab}>
-            <div className="flex">
-              <div className="w-1/4">
-                <TabList className="flex flex-col space-y-2">
-                  {tabs.map((tab, index) => (
-                    <Tab
-                      key={index}
-                      className={({ selected }) =>
-                        cls(
-                          'py-2 px-2 rounded-lg focus:outline-none text-sm w-full text-left whitespace-nowrap',
-                          selected
-                            ? 'bg-gray-200 text-black'
-                            : 'bg-white text-black hover:bg-gray-200',
-                        )
-                      }>
-                      {tab.name}
-                    </Tab>
-                  ))}
-                </TabList>
-              </div>
-
-              <div className="w-3/4 pl-4">
-                <TabPanels>
-                  {tabs.map((tab, index) => (
-                    <TabPanel key={index}>{tab.content}</TabPanel>
-                  ))}
-                </TabPanels>
-              </div>
-            </div>
-          </TabGroup>
+          <Tabs defaultValue="llm-providers" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="llm-providers">LLM Providers</TabsTrigger>
+              <TabsTrigger value="system-prompt">System Prompt</TabsTrigger>
+            </TabsList>
+            <TabsContent value="llm-providers">
+              <LLMSettings />
+            </TabsContent>
+            <TabsContent value="system-prompt">
+              <SystemPromptSettings />
+            </TabsContent>
+          </Tabs>
         )}
-        <button
-          onClick={handleSave}
-          className={`w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mt-6`}>
+        <Button onClick={handleSave} className="w-full mt-6">
           {isOnboarding ? 'Save and Continue' : 'Save and Close'}
-        </button>
-      </div>
-    </div>
+        </Button>
+      </DialogContent>
+    </Dialog>
   )
 }
-
-const tabs = [
-  { name: 'LLM Providers', content: <LLMSettings /> },
-  { name: 'System Prompt', content: <SystemPromptSettings /> },
-]

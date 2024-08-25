@@ -20,6 +20,8 @@ async function* toStream(
   prompt: string,
 ): AsyncIterable<StreamingChunk> {
   yield {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion.chunk',
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(prompt, response.body.generations[0].text),
@@ -28,6 +30,7 @@ async function* toStream(
         delta: {
           content: response.body.generations[0].text,
           role: 'assistant',
+          refusal: null,
         },
         finish_reason: 'stop',
         index: 0,

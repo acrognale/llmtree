@@ -51,8 +51,8 @@ async function* toStreamingResponse(
 
 function toGeminiParams(params: HandlerParams): StartChatParams & ModelParams {
   const messages = params.messages.map((msg) => ({
-    role: msg.role as string,
-    parts: [{ text: msg.content ?? '' }],
+    role: msg.role as 'user' | 'model',
+    parts: [{ text: msg.content as string }],
   }));
 
   messages.forEach((msg) => {

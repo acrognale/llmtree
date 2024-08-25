@@ -88,6 +88,9 @@ async function* handleStreamingPrediction(
     // flush the results since last yield
     const combined = results.reduce((acc, curr) => (acc += curr), '');
     yield {
+      id: `chatcmpl-${Date.now()}`,
+      model: params.model,
+      object: 'chat.completion.chunk',
       created: getUnixTimestamp(),
       usage: toUsage(prompt, combined),
       choices: [
@@ -95,6 +98,7 @@ async function* handleStreamingPrediction(
           delta: {
             content: combined,
             role: 'assistant',
+            refusal: null,
           },
           index: 0,
           finish_reason: 'stop',

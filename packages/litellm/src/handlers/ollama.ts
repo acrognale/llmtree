@@ -23,12 +23,18 @@ function toStreamingChunk(
   prompt: string,
 ): StreamingChunk {
   return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion.chunk',
     model: model,
     created: getUnixTimestamp(),
     usage: toUsage(prompt, ollamaResponse.response),
     choices: [
       {
-        delta: { content: ollamaResponse.response, role: 'assistant' },
+        delta: { 
+          content: ollamaResponse.response, 
+          role: 'assistant',
+          refusal: null,
+        },
         finish_reason: 'stop',
         index: 0,
       },

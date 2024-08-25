@@ -55,6 +55,8 @@ function toStreamingChunk(
 ): StreamingChunk | null {
   if (anthropicResponse.type === 'content_block_delta') {
     return {
+      id: `chatcmpl-${Date.now()}`,
+      object: 'chat.completion.chunk',
       model,
       created: getUnixTimestamp(),
       choices: [
@@ -65,6 +67,7 @@ function toStreamingChunk(
                 ? anthropicResponse.delta.text
                 : null,
             role: 'assistant',
+            refusal: null,
           },
           finish_reason: null,
           index: 0,
@@ -78,10 +81,15 @@ function toStreamingChunk(
 function toAnthropicParams(params: HandlerParams): MessageCreateParams {
   return {
     max_tokens: params.max_tokens ?? 4096,
-    messages: params.messages.map((msg) => ({
-      role: msg.role as 'assistant' | 'user',
-      content: msg.content as string,
-    })),
+    messages: params.messages.map((msg) => {
+      const baseMessage = {
+        role: msg.role as 'assistant' | 'user',
+        content: msg.content as string,
+      };
+      return msg.role === 'function'
+        ? { ...baseMessage, name: msg.name }
+        : baseMessage;
+    }),
     system: params.system,
     model: params.model,
   };

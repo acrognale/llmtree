@@ -44,6 +44,8 @@ async function* toStreamingResponse(
 ): ResultStreaming {
   for await (const chunk of response) {
     yield {
+      id: `chatcmpl-${Date.now()}`,
+      object: 'chat.completion.chunk',
       model: chunk.candidates?.[0]?.content?.role ?? 'model',
       created: Date.now(),
       choices: [
@@ -51,6 +53,7 @@ async function* toStreamingResponse(
           delta: {
             content: chunk.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
             role: mapRole(chunk.candidates?.[0]?.content?.role ?? 'model'),
+            refusal: null,
           },
           index: 0,
           finish_reason: mapFinishReason(chunk.candidates?.[0]?.finishReason),
@@ -58,6 +61,41 @@ async function* toStreamingResponse(
       ],
     };
   }
+}
+
+function mapRole(role: string): 'system' | 'user' | 'assistant' | 'tool' {
+  switch (role) {
+    case 'model':
+      return 'assistant';
+    case 'user':
+      return 'user';
+    default:
+      return 'user';
+  }
+}
+
+function toGeminiParams(params: HandlerParams): StartChatParams & ModelParams {
+  const messages = params.messages.map((msg) => ({
+    role: msg.role as 'user' | 'model',
+    parts: [{ text: msg.content as string }],
+  }));
+
+  messages.forEach((msg) => {
+    if (msg.role === 'assistant') {
+      msg.role = 'model';
+    }
+  });
+
+  return {
+    generationConfig: {
+      temperature: params.temperature ?? undefined,
+      topP: params.top_p ?? undefined,
+      maxOutputTokens: params.max_tokens ?? undefined,
+    },
+    systemInstruction: params.system,
+    history: messages,
+    model: params.model,
+  };
 }
 
 function toGeminiParams(params: HandlerParams): StartChatParams & ModelParams {

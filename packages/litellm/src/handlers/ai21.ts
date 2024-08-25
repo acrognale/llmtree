@@ -89,6 +89,7 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
       message: {
         content: completion.data.text,
         role: 'assistant',
+        refusal: null,
       },
     };
   });

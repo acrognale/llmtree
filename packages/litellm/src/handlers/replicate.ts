@@ -38,12 +38,38 @@ async function handleNonStreamingPrediction(
         message: {
           role: 'assistant',
           content: output,
+          refusal: null,
         },
         finish_reason: 'stop',
         index: 0,
       },
     ],
   };
+}
+
+export async function ReplicateHandler(
+  params: HandlerParams,
+): Promise<ResultNotStreaming | ResultStreaming> {
+  const apiKey = params.apiKey ?? process.env.REPLICATE_API_KEY;
+  const replicate = new Replicate({
+    auth: apiKey,
+  });
+  const model = params.model.split('replicate/')[1];
+  const version = model.split(':')[1];
+
+  const prompt = combinePrompts(params.messages);
+  const prediction = await replicate.predictions.create({
+    version: version,
+    stream: params.stream,
+    input: {
+      prompt,
+    },
+  });
+
+  if (params.stream) {
+    return handleStreamingPrediction(prompt, prediction);
+  }
+  return handleNonStreamingPrediction(prompt, prediction, replicate);
 }
 
 async function* handleStreamingPrediction(

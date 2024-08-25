@@ -23,22 +23,30 @@ export type ToolCall =
 export type StreamingToolCall =
   OpenAI.ChatCompletionChunk.Choice.Delta.ToolCall;
 
-export type ConsistentResponseChoice = OpenAI.ChatCompletion.Choice;
+export type ConsistentResponseChoice = Omit<OpenAI.ChatCompletion.Choice, 'logprobs'>;
 
 export type ConsistentResponseStreamingChoice =
   OpenAI.ChatCompletionChunk.Choice;
 
 export type ConsistentResponseUsage = OpenAI.CompletionUsage;
 
-export type ConsistentResponse = OpenAI.ChatCompletion;
+export type ConsistentResponse = Omit<OpenAI.ChatCompletion, 'choices'> & {
+  choices: ConsistentResponseChoice[];
+};
 
 export type ResultNotStreaming = ConsistentResponse;
 
-export type StreamingChunk = OpenAI.ChatCompletionChunk;
+export type StreamingChunk = Omit<OpenAI.ChatCompletionChunk, 'choices'> & {
+  choices: ConsistentResponseStreamingChoice[];
+};
 
 export type ResultStreaming = AsyncIterable<StreamingChunk>;
 
 export type Result = ResultNotStreaming | ResultStreaming;
+
+export interface ChatCompletionMessage extends OpenAI.ChatCompletionMessage {
+  refusal?: string | null;
+}
 
 export type AvailableProviders =
   | 'openai'

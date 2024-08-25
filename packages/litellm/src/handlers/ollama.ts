@@ -53,7 +53,7 @@ function toResponse(
     usage: toUsage(prompt, content),
     choices: [
       {
-        message: { content, role: 'assistant' },
+        message: { content, role: 'assistant', refusal: null },
         finish_reason: 'stop',
         index: 0,
       },

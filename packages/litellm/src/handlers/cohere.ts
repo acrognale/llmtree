@@ -81,6 +81,7 @@ export async function CohereHandler(
         message: {
           content: response.body.generations[0].text,
           role: 'assistant',
+          refusal: null,
         },
         finish_reason: 'stop',
         index: 0,

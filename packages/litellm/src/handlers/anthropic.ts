@@ -39,6 +39,7 @@ function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
               ? anthropicResponse.content[0].text
               : null,
           role: 'assistant',
+          refusal: null,
         },
         finish_reason: anthropicResponse.stop_reason
           ? toFinishReson(anthropicResponse.stop_reason)
@@ -46,6 +47,27 @@ function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
         index: 0,
       },
     ],
+  };
+}
+
+function toAnthropicParams(params: HandlerParams): MessageCreateParams {
+  return {
+    max_tokens: params.max_tokens ?? 4096,
+    messages: params.messages.map((msg) => {
+      if (msg.role === 'function') {
+        return {
+          role: 'assistant',
+          content: msg.content as string,
+          name: msg.name,
+        };
+      }
+      return {
+        role: msg.role as 'assistant' | 'user',
+        content: msg.content as string,
+      };
+    }),
+    system: params.system,
+    model: params.model,
   };
 }
 

@@ -124,9 +124,13 @@ export async function GeminiHandler(
     throw new Error('No content provided');
   }
 
+  const content = typeof lastMessage.content === 'string' 
+    ? lastMessage.content 
+    : JSON.stringify(lastMessage.content);
+
   if (params.stream) {
     try {
-      const response = await chat.sendMessageStream(lastMessage.content);
+      const response = await chat.sendMessageStream(content);
       return toStreamingResponse(response.stream);
     } catch (error) {
       console.error(error);
@@ -134,7 +138,7 @@ export async function GeminiHandler(
     }
   }
 
-  const response = await chat.sendMessage(lastMessage.content);
+  const response = await chat.sendMessage(content);
 
   return {
     model: params.model,
@@ -145,6 +149,7 @@ export async function GeminiHandler(
         message: {
           role: 'assistant',
           content: response.response.text(),
+          refusal: null,
         },
         finish_reason:
           mapFinishReason(response.response.candidates?.[0]?.finishReason) ??

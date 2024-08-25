@@ -20,7 +20,7 @@ function toFinishReson(string: string): FinishReason {
   return 'stop';
 }
 
-function toResponse(anthropicResponse: Anthropic.Message): ConsistentResponse {
+function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
   return {
     id: `chatcmpl-${Date.now()}`,
     object: 'chat.completion',
@@ -144,10 +144,19 @@ export async function AnthropicHandler(
     apiKey: apiKey,
   });
 
-  const anthropicMessages = params.messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
+  const anthropicMessages = params.messages.map((msg) => {
+    if (msg.role === 'function') {
+      return {
+        role: 'assistant' as const,
+        content: msg.content as string,
+        name: msg.name,
+      };
+    }
+    return {
+      role: msg.role as 'assistant' | 'user' | 'system',
+      content: msg.content as string,
+    };
+  });
 
   const anthropicParams = toAnthropicParams({
     ...params,

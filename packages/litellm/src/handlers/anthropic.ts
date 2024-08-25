@@ -42,7 +42,7 @@ function toResponse(anthropicResponse: Anthropic.Message): ResultNotStreaming {
         },
         finish_reason: anthropicResponse.stop_reason
           ? toFinishReson(anthropicResponse.stop_reason)
-          : null,
+          : 'stop',
         index: 0,
       },
     ],
@@ -82,13 +82,17 @@ function toAnthropicParams(params: HandlerParams): MessageCreateParams {
   return {
     max_tokens: params.max_tokens ?? 4096,
     messages: params.messages.map((msg) => {
-      const baseMessage = {
+      if (msg.role === 'function') {
+        return {
+          role: 'assistant',
+          content: msg.content as string,
+          name: msg.name,
+        };
+      }
+      return {
         role: msg.role as 'assistant' | 'user',
         content: msg.content as string,
       };
-      return msg.role === 'function'
-        ? { ...baseMessage, name: msg.name }
-        : baseMessage;
     }),
     system: params.system,
     model: params.model,

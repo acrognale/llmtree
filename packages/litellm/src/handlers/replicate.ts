@@ -38,7 +38,6 @@ async function handleNonStreamingPrediction(
         message: {
           role: 'assistant',
           content: output,
-          refusal: null,
         },
         finish_reason: 'stop',
         index: 0,

@@ -28,6 +28,17 @@ function mapFinishReason(geminiReason: string | undefined): FinishReason {
   }
 }
 
+function mapRole(role: string): 'system' | 'user' | 'assistant' | 'tool' {
+  switch (role) {
+    case 'model':
+      return 'assistant';
+    case 'user':
+      return 'user';
+    default:
+      return 'user';
+  }
+}
+
 async function* toStreamingResponse(
   response: AsyncIterable<EnhancedGenerateContentResponse>,
 ): ResultStreaming {
@@ -39,7 +50,7 @@ async function* toStreamingResponse(
         {
           delta: {
             content: chunk.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
-            role: chunk.candidates?.[0]?.content?.role ?? 'model',
+            role: mapRole(chunk.candidates?.[0]?.content?.role ?? 'model'),
           },
           index: 0,
           finish_reason: mapFinishReason(chunk.candidates?.[0]?.finishReason),

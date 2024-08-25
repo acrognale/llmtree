@@ -88,10 +88,8 @@ function toResponse(response: AI21Response, model: string): ResultNotStreaming {
       index: i,
       message: {
         content: completion.data.text,
-        role: 'assistant' as Role,
-        refusal: null,
+        role: 'assistant',
       },
-      logprobs: null,
     };
   });
   return {

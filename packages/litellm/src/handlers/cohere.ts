@@ -1,4 +1,5 @@
 import cohere from 'cohere-ai';
+import { cohereResponse, generateResponse } from 'cohere-ai/dist/models';
 
 import {
   HandlerParams,
@@ -8,7 +9,6 @@ import {
   HandlerParamsStreaming,
   StreamingChunk,
 } from '../types';
-import { cohereResponse, generateResponse } from 'cohere-ai/dist/models';
 import { combinePrompts } from '../utils/combinePrompts';
 import { getUnixTimestamp } from '../utils/getUnixTimestamp';
 import { toUsage } from '../utils/toUsage';

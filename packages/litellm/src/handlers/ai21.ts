@@ -6,7 +6,6 @@ import {
   HandlerParamsStreaming,
   ResultNotStreaming,
   ResultStreaming,
-  Role,
   StreamingChunk,
 } from '../types';
 import { combinePrompts } from '../utils/combinePrompts';
